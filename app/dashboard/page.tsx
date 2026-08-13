@@ -171,7 +171,7 @@ export default function Dashboard() {
           <div>📝</div> Tasks
         </button>
         <button onClick={() => setActiveTab('payments')} className={`p-1.5 font-bold ${activeTab === 'payments' ? 'text-emerald-700' : 'text-slate-500'}`}>
-          <div>💳</span> Payments
+          <div>💳</div> Payments
         </button>
         <button onClick={() => setActiveTab('profile')} className={`p-1.5 font-bold ${activeTab === 'profile' ? 'text-emerald-700' : 'text-slate-500'}`}>
           <div>👤</div> Profile
