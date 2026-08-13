@@ -16,6 +16,13 @@ export default function Dashboard() {
   const [balance, setBalance] = useState(150.0);
   const [isPremium, setIsPremium] = useState(false);
   
+  // Dynamic Session User Profile
+  const [userProfile, setUserProfile] = useState({
+    name: 'Amina Wanjiku',
+    email: 'amina@example.com',
+    provider: 'Email & Password'
+  });
+
   // Active execution modal state
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [taskTimer, setTaskTimer] = useState(0);
@@ -35,6 +42,21 @@ export default function Dashboard() {
     { id: 3, title: 'Review E-Commerce App on Store', category: 'App Test', reward: 120, timeEstimate: '2 mins', type: 'review' },
     { id: 4, title: '⭐ Premium: Beta Software Testing', category: 'Software', reward: 350, timeEstimate: '5 mins', type: 'review' },
   ];
+
+  // Fetch session dynamic auth on client load
+  useEffect(() => {
+    const savedName = localStorage.getItem('userName');
+    const savedEmail = localStorage.getItem('userEmail');
+    const savedProvider = localStorage.getItem('authProvider');
+
+    if (savedEmail || savedProvider) {
+      setUserProfile({
+        name: savedName || 'Amina Wanjiku',
+        email: savedEmail || 'amina@example.com',
+        provider: savedProvider || 'Email & Password'
+      });
+    }
+  }, []);
 
   // Handle task timer countdown
   useEffect(() => {
@@ -153,11 +175,11 @@ export default function Dashboard() {
         {/* User Mini Profile Card */}
         <div className="hidden md:flex items-center gap-3 p-2 bg-slate-50 border border-slate-200/60 rounded-2xl">
           <div className="w-9 h-9 rounded-full bg-emerald-800 text-white font-bold flex items-center justify-center text-xs">
-            AW
+            {userProfile.name.slice(0, 2).toUpperCase()}
           </div>
           <div className="flex-1 overflow-hidden">
-            <h4 className="text-xs font-bold text-slate-800 truncate">Amina Wanjiku</h4>
-            <p className="text-[10px] text-slate-500 truncate">amina@example.com</p>
+            <h4 className="text-xs font-bold text-slate-800 truncate">{userProfile.name}</h4>
+            <p className="text-[10px] text-slate-500 truncate">{userProfile.email}</p>
           </div>
         </div>
       </aside>
@@ -188,7 +210,7 @@ export default function Dashboard() {
         <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
           <div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight capitalize">{activeTab} Workspace</h2>
-            <p className="text-xs text-slate-500">Welcome back, Amina</p>
+            <p className="text-xs text-slate-500">Welcome back, {userProfile.name.split(' ')[0]}</p>
           </div>
 
           {/* Profile Icon Trigger */}
@@ -197,7 +219,7 @@ export default function Dashboard() {
             className="flex items-center gap-2 bg-emerald-50 border border-emerald-200/80 p-1.5 pr-3 rounded-full hover:bg-emerald-100/60 transition"
           >
             <div className="w-8 h-8 rounded-full bg-emerald-700 text-white font-bold flex items-center justify-center text-xs">
-              AW
+              {userProfile.name.slice(0, 2).toUpperCase()}
             </div>
             <span className="text-xs font-bold text-emerald-900 hidden sm:inline">Profile</span>
           </button>
@@ -309,7 +331,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* TAB 3: PAYMENTS (Hidden Withdrawal Area) */}
+        {/* TAB 3: PAYMENTS */}
         {activeTab === 'payments' && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
@@ -390,10 +412,10 @@ export default function Dashboard() {
           <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
             <div className="flex items-center gap-4 border-b border-slate-100 pb-4">
               <div className="w-16 h-16 rounded-full bg-emerald-800 text-white font-extrabold flex items-center justify-center text-xl shadow">
-                AW
+                {userProfile.name.slice(0, 2).toUpperCase()}
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Amina Wanjiku</h3>
+                <h3 className="text-lg font-bold text-slate-900">{userProfile.name}</h3>
                 <p className="text-xs text-slate-500">Verified Worker • Nairobi, Kenya</p>
               </div>
             </div>
@@ -401,11 +423,13 @@ export default function Dashboard() {
             <div className="space-y-3 text-xs">
               <div className="flex justify-between py-2 border-b border-slate-100">
                 <span className="text-slate-500">Email Address</span>
-                <span className="font-bold text-slate-800">amina@example.com</span>
+                <span className="font-bold text-slate-800">{userProfile.email}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-100">
-                <span className="text-slate-500">M-Pesa Number</span>
-                <span className="font-bold text-slate-800">+254 712 345 678</span>
+                <span className="text-slate-500">Authentication Provider</span>
+                <span className="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  {userProfile.provider}
+                </span>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-100">
                 <span className="text-slate-500">Account Type</span>
@@ -522,10 +546,13 @@ export default function Dashboard() {
             </div>
             <div className="text-center py-2">
               <div className="w-16 h-16 mx-auto rounded-full bg-emerald-800 text-white font-black flex items-center justify-center text-xl mb-2">
-                AW
+                {userProfile.name.slice(0, 2).toUpperCase()}
               </div>
-              <h4 className="font-bold text-slate-900 text-sm">Amina Wanjiku</h4>
-              <p className="text-xs text-slate-500">amina@example.com</p>
+              <h4 className="font-bold text-slate-900 text-sm">{userProfile.name}</h4>
+              <p className="text-xs text-slate-500">{userProfile.email}</p>
+              <span className="inline-block mt-2 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                Logged in via {userProfile.provider}
+              </span>
             </div>
             <button
               onClick={() => { setShowProfileModal(false); setActiveTab('profile'); }}
