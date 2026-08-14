@@ -9,7 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Phone number is required' }, { status: 400 });
     }
 
-    // Auto-format phone number to 254XXXXXXXXX
+    // Convert local numbers (07XX... / 01XX...) to 2547XX...
     let formattedPhone = phone.trim().replace(/\+/g, '').replace(/\s+/g, '');
     if (formattedPhone.startsWith('0')) {
       formattedPhone = '254' + formattedPhone.substring(1);
@@ -21,16 +21,20 @@ export async function POST(req: Request) {
 
     if (!publishableKey || !secretKey) {
       return NextResponse.json(
-        { error: 'IntaSend API keys are missing in Environment Variables' },
+        { error: 'IntaSend API keys missing from Environment Variables' },
         { status: 500 }
       );
     }
 
-    // Initialize IntaSend
-    const intasend = new IntaSend(publishableKey, secretKey, isTest);
+    // Initialize IntaSend SDK correctly
+    const intasend = new IntaSend(publishableKey, {
+      secretKey: secretKey,
+      test: isTest,
+    });
+
     const collection = intasend.collection();
 
-    // Trigger STK Push
+    // Trigger M-Pesa STK Push
     const response = await collection.mpesaStkPush({
       first_name: 'ROFRA',
       last_name: 'User',
