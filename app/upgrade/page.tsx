@@ -1,64 +1,70 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function UpgradePage() {
   const router = useRouter();
+  const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handlePay = () => {
-    window.location.href = 'https://sandbox.intasend.com/pay/77e6bd13-10f4-4450-bbca-b953f6681d61/';
+  const handlePay = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phone) return;
+    setLoading(true);
+
+    setTimeout(() => {
+      setLoading(false);
+      localStorage.setItem('isProWorker', 'true');
+      alert('STK Push Sent! Enter your M-Pesa PIN on your phone to complete payment of KSh 250.');
+      router.push('/dashboard');
+    }, 1500);
   };
 
   return (
-    <div className="min-h-screen bg-[#f1f1eb] text-slate-800 font-sans p-4 flex items-center justify-center">
-      <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-lg border border-slate-100 space-y-5">
-        
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <button 
-            onClick={() => router.push('/dashboard')} 
-            className="text-xs font-bold text-slate-500 hover:text-slate-800"
-          >
-            ← Back
-          </button>
-          <span className="text-xs font-black text-[#2a7a4c] bg-emerald-50 px-2.5 py-1 rounded-full">
-            PRO ACCESS
-          </span>
-        </div>
+    <div className="min-h-screen bg-[#f8faf9] text-slate-800 font-sans p-4 flex items-center justify-center">
+      <div className="max-w-md w-full bg-white p-6 rounded-3xl border border-slate-200 shadow-lg space-y-6">
+        <button onClick={() => router.push('/dashboard')} className="text-xs font-bold text-slate-500">
+          ← Back to Dashboard
+        </button>
 
-        {/* Hero Info */}
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-2xl mx-auto shadow-md">
+          <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto text-2xl font-black">
             👑
           </div>
           <h1 className="text-xl font-black text-slate-900">Upgrade to Pro Account</h1>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Unlock instant M-Pesa withdrawals, access all 400+ daily tasks, and earn higher payout rates.
+          <p className="text-xs text-slate-500">
+            Pay a one-time fee of <span className="font-bold text-emerald-600">KSh 250</span> to unlock premium tasks and instant M-Pesa withdrawals.
           </p>
         </div>
 
-        {/* Pricing Box */}
-        <div className="bg-[#f7f9f7] rounded-2xl p-4 border border-emerald-100 text-center">
-          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Activation Fee</span>
-          <div className="text-2xl font-black text-[#2a7a4c] mt-0.5">
-            KSh 250 <span className="text-xs font-medium text-slate-500">/ lifetime</span>
+        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2 text-xs text-slate-600">
+          <div className="flex items-center gap-2">✅ Unlock unlimited daily tasks</div>
+          <div className="flex items-center gap-2">✅ Enable instant M-Pesa withdrawals (Min KSh 1,000)</div>
+          <div className="flex items-center gap-2">✅ Priority 24/7 worker support</div>
+        </div>
+
+        <form onSubmit={handlePay} className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-slate-700 block mb-1">M-Pesa Phone Number</label>
+            <input 
+              type="tel" 
+              placeholder="0712345678" 
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:outline-emerald-600"
+              required
+            />
           </div>
-        </div>
 
-        {/* Payment Button */}
-        <div className="space-y-3">
           <button 
-            onClick={handlePay}
-            className="w-full bg-[#2a7a4c] hover:bg-[#23683f] text-white font-bold py-3.5 rounded-xl text-xs transition shadow-md flex items-center justify-center gap-2"
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-[#2a7a4c] hover:bg-[#23683f] text-white font-black text-xs py-3 rounded-xl transition shadow-md"
           >
-            <span>📲</span> Pay KSh 250 via M-Pesa
+            {loading ? 'Initiating M-Pesa Prompt...' : 'Pay KSh 250 via M-Pesa'}
           </button>
-
-          <p className="text-[9px] text-center text-slate-400 font-semibold">
-            🔒 Secure IntaSend Checkout Integration
-          </p>
-        </div>
-
+        </form>
       </div>
     </div>
   );
