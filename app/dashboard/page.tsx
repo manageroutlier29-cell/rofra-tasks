@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -28,7 +30,6 @@ export default function Dashboard() {
   const [taskList, setTaskList] = useState<Task[]>([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
 
-  // Admin New Task Form State
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState('Video');
   const [newTaskReward, setNewTaskReward] = useState('');
@@ -37,9 +38,7 @@ export default function Dashboard() {
 
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [taskTimer, setTaskTimer] = useState(0);
-  const [isSubmittingTask, setIsSubmittingTask] = useState(false);
 
-  // Load User Info and Set Up Realtime Task Subscriptions
   useEffect(() => {
     const savedName = localStorage.getItem('userName');
     const savedEmail = localStorage.getItem('userEmail') || '';
@@ -56,17 +55,14 @@ export default function Dashboard() {
       });
     }
 
-    // 1. Initial Fetch of Tasks from Supabase
     fetchInitialTasks();
 
-    // 2. Realtime Listener across all connected devices!
     const channel = supabase
       .channel('tasks-realtime-channel')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'tasks' },
         () => {
-          // Re-fetch tasks instantly whenever any change (insert/delete) happens
           fetchInitialTasks();
         }
       )
@@ -84,15 +80,12 @@ export default function Dashboard() {
       .select('*')
       .order('id', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching tasks from Supabase:', error.message);
-    } else if (data) {
+    if (!error && data) {
       setTaskList(data as Task[]);
     }
     setIsLoadingTasks(false);
   };
 
-  // REALTIME ACTION 1: Inject Task into Cloud Database
   const handleInjectTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle || !newTaskReward) return alert('Please fill out details.');
@@ -112,46 +105,14 @@ export default function Dashboard() {
     } else {
       setNewTaskTitle('');
       setNewTaskReward('');
-      alert('⚡ Task injected live to all connected devices!');
+      alert('⚡ Task injected live!');
     }
   };
 
-  // REALTIME ACTION 2: Remove Task from Cloud Database
   const handleRemoveTask = async (taskId: number) => {
     if (confirm('Are you sure you want to remove this task?')) {
-      const { error } = await supabase.from('tasks').delete().eq('id', taskId);
-      if (error) {
-        alert('Failed to delete task: ' + error.message);
-      }
+      await supabase.from('tasks').delete().eq('id', taskId);
     }
-  };
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (activeTask && activeTask.type === 'video' && taskTimer > 0) {
-      timer = setInterval(() => setTaskTimer((prev) => prev - 1), 1000);
-    }
-    return () => clearInterval(timer);
-  }, [activeTask, taskTimer]);
-
-  const startTaskExecution = (task: Task) => {
-    setActiveTask(task);
-    if (task.type === 'video') setTaskTimer(15);
-  };
-
-  const handleCompleteTask = async () => {
-    if (!activeTask) return;
-    setIsSubmittingTask(true);
-
-    // Remove completed task for user
-    await supabase.from('tasks').delete().eq('id', activeTask.id);
-
-    setTimeout(() => {
-      setBalance((prev) => prev + activeTask.reward);
-      setIsSubmittingTask(false);
-      alert(`🎉 KES ${activeTask.reward} added to your balance.`);
-      setActiveTask(null);
-    }, 1000);
   };
 
   return (
@@ -215,7 +176,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-extrabold text-emerald-700">+ KES {task.reward}</span>
-                    <button onClick={() => startTaskExecution(task)} className="bg-[#244c3f] text-white text-xs font-bold px-4 py-2 rounded-xl">Start ↗</button>
+                    <button onClick={() => setActiveTask(task)} className="bg-[#244c3f] text-white text-xs font-bold px-4 py-2 rounded-xl">Start ↗</button>
                   </div>
                 </div>
               ))
@@ -223,7 +184,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ADMIN PANEL FOR ROBERT WAWERU */}
         {activeTab === 'admin' && userProfile.isAdmin && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-3xl border border-amber-200 shadow-sm">
