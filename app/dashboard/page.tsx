@@ -1,13 +1,18 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdmin } from '@/lib/auth';
 
 export default function WorkerDashboard() {
   const router = useRouter();
-  
-  // Replace with dynamic email from your auth provider (e.g. NextAuth / Supabase / Clerk)
-  const userEmail = 'robertwaweru324@gmail.com'; 
+  const [userEmail, setUserEmail] = useState<string>('');
+
+  useEffect(() => {
+    // Retrieves logged in user email from localStorage, session, or default worker
+    const storedEmail = localStorage.getItem('userEmail') || 'worker@rofratasks.com';
+    setUserEmail(storedEmail);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#f1f1eb] text-slate-800 font-sans p-4">
@@ -17,10 +22,11 @@ export default function WorkerDashboard() {
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
           <div>
             <h1 className="text-base font-black text-slate-900">ROFRA TASKS</h1>
-            <p className="text-[10px] text-slate-400">{userEmail}</p>
+            <p className="text-[10px] text-slate-400">{userEmail || 'Loading...'}</p>
           </div>
           
           <div className="flex gap-2">
+            {/* Show Admin button ONLY if logged in email matches robertwaweru324@gmail.com */}
             {isAdmin(userEmail) && (
               <button 
                 onClick={() => router.push('/admin')}
