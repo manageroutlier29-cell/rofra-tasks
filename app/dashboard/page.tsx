@@ -11,10 +11,12 @@ export default function WorkerDashboard() {
   const [taskList, setTaskList] = useState<Task[]>([]);
 
   useEffect(() => {
-    const storedEmail = localStorage.getItem('userEmail') || 'worker@rofratasks.com';
+    const storedEmail = localStorage.getItem('userEmail') || 'robertwaweru324@gmail.com';
     setUserEmail(storedEmail);
     setTaskList(getStoredTasks());
   }, []);
+
+  const userIsAdmin = isAdmin(userEmail);
 
   const handleStartTask = (task: Task) => {
     if (task.link) {
@@ -39,7 +41,7 @@ export default function WorkerDashboard() {
           </div>
 
           <div className="flex items-center gap-2">
-            {isAdmin(userEmail) && (
+            {userIsAdmin && (
               <button 
                 onClick={() => router.push('/admin')}
                 className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-sm transition"
@@ -58,22 +60,28 @@ export default function WorkerDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        {/* Earnings Card */}
         <div className="bg-[#2a7a4c] text-white p-6 rounded-3xl shadow-md space-y-4">
           <div className="flex justify-between items-center">
             <span className="text-xs uppercase font-extrabold text-emerald-200 tracking-wider">Available Balance</span>
             <span className="text-[10px] bg-emerald-900/50 text-emerald-200 font-bold px-2.5 py-1 rounded-full border border-emerald-700/50">
-              STANDARD ACCOUNT
+              {userIsAdmin ? 'ADMIN ACCOUNT' : 'STANDARD ACCOUNT'}
             </span>
           </div>
           <div className="text-4xl font-black">KSh 0.00</div>
-          <button 
-            onClick={() => router.push('/upgrade')}
-            className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs py-3 px-4 rounded-xl transition shadow-md w-full"
-          >
-            👑 Upgrade to Pro to Unlock Instant M-Pesa Withdrawals
-          </button>
+          
+          {/* Upgrade Banner - HIDDEN FOR ADMIN */}
+          {!userIsAdmin && (
+            <button 
+              onClick={() => router.push('/upgrade')}
+              className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs py-3 px-4 rounded-xl transition shadow-md w-full"
+            >
+              👑 Upgrade to Pro to Unlock Instant M-Pesa Withdrawals
+            </button>
+          )}
         </div>
 
+        {/* Tasks Section */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
           <div className="flex justify-between items-center">
             <div>
