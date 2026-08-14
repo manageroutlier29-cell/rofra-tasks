@@ -16,7 +16,6 @@ export default function Register() {
 
     setIsLoading(true);
 
-    // Save session details cleanly to localStorage
     const cleanEmail = email.trim().toLowerCase();
     const namePart = cleanEmail.split('@')[0] || 'User';
     const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
@@ -45,7 +44,6 @@ export default function Register() {
           </p>
         </header>
 
-        {/* TAB SWITCHER */}
         <div className="bg-slate-100 p-1 rounded-2xl flex text-xs font-bold mb-6">
           <button
             type="button"
@@ -63,7 +61,6 @@ export default function Register() {
           </button>
         </div>
 
-        {/* SOCIAL AUTH BUTTONS */}
         <div className="space-y-2.5 mb-6">
           <button
             type="button"
@@ -92,7 +89,6 @@ export default function Register() {
           <div className="flex-grow border-t border-slate-200"></div>
         </div>
 
-        {/* FORM */}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="block text-[11px] font-bold text-slate-600 mb-1">Email address</label>
@@ -128,7 +124,7 @@ export default function Register() {
         </form>
 
         <p className="text-[10px] text-slate-400 text-center mt-6">
-          By continuing, you agree to Rofra's terms and privacy policy.
+          By continuing, you agree to Rofra&apos;s terms and privacy policy.
         </p>
       </div>
     </div>
