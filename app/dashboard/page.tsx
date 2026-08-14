@@ -3,17 +3,20 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdmin } from '@/lib/auth';
-import { getStoredTasks, Task } from '@/lib/tasks';
+import { getStoredTasks, getWorkerBalance, addWorkerBalance, Task } from '@/lib/tasks';
 
 export default function WorkerDashboard() {
   const router = useRouter();
   const [userEmail, setUserEmail] = useState<string>('');
   const [taskList, setTaskList] = useState<Task[]>([]);
+  const [balance, setBalance] = useState<number>(0);
+  const [withdrawAmount, setWithdrawAmount] = useState<string>('');
 
   useEffect(() => {
     const storedEmail = localStorage.getItem('userEmail') || 'robertwaweru324@gmail.com';
     setUserEmail(storedEmail);
     setTaskList(getStoredTasks());
+    setBalance(getWorkerBalance());
   }, []);
 
   const userIsAdmin = isAdmin(userEmail);
@@ -21,9 +24,33 @@ export default function WorkerDashboard() {
   const handleStartTask = (task: Task) => {
     if (task.link) {
       window.open(task.link, '_blank');
-    } else {
-      alert(`Starting task: ${task.title}`);
     }
+    const updated = addWorkerBalance(task.reward);
+    setBalance(updated);
+    alert(`Task started! KSh ${task.reward} added to your balance.`);
+  };
+
+  const handleWithdraw = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(withdrawAmount);
+
+    if (isNaN(amount) || amount < 1000) {
+      alert('Minimum withdrawal amount is KSh 1,000.');
+      return;
+    }
+
+    if (amount > 10000) {
+      alert('Maximum single withdrawal limit is KSh 10,000.');
+      return;
+    }
+
+    if (amount > balance) {
+      alert('Insufficient available balance.');
+      return;
+    }
+
+    alert(`Withdrawal request of KSh ${amount} submitted to Admin!`);
+    setWithdrawAmount('');
   };
 
   return (
@@ -60,7 +87,6 @@ export default function WorkerDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Earnings Card */}
         <div className="bg-[#2a7a4c] text-white p-6 rounded-3xl shadow-md space-y-4">
           <div className="flex justify-between items-center">
             <span className="text-xs uppercase font-extrabold text-emerald-200 tracking-wider">Available Balance</span>
@@ -68,25 +94,37 @@ export default function WorkerDashboard() {
               {userIsAdmin ? 'ADMIN ACCOUNT' : 'STANDARD ACCOUNT'}
             </span>
           </div>
-          <div className="text-4xl font-black">KSh 0.00</div>
+          <div className="text-4xl font-black">KSh {balance.toFixed(2)}</div>
           
-          {/* Upgrade Banner - HIDDEN FOR ADMIN */}
           {!userIsAdmin && (
-            <button 
-              onClick={() => router.push('/upgrade')}
-              className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs py-3 px-4 rounded-xl transition shadow-md w-full"
-            >
-              👑 Upgrade to Pro to Unlock Instant M-Pesa Withdrawals
-            </button>
+            <div className="space-y-3 pt-2">
+              <form onSubmit={handleWithdraw} className="flex gap-2">
+                <input 
+                  type="number" 
+                  placeholder="Enter KSh (1,000 - 10,000)" 
+                  value={withdrawAmount} 
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl text-slate-900 font-bold bg-white outline-none"
+                />
+                <button 
+                  type="submit"
+                  className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs py-2 px-4 rounded-xl transition whitespace-nowrap"
+                >
+                  Withdraw
+                </button>
+              </form>
+              <p className="text-[10px] text-emerald-200 font-semibold text-center">
+                Limits: Min KSh 1,000 | Max KSh 10,000 per request
+              </p>
+            </div>
           )}
         </div>
 
-        {/* Tasks Section */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-base font-black text-slate-900">Available Daily Tasks</h2>
-              <p className="text-xs text-slate-400">Complete tasks and submit proof for instant payout credit.</p>
+              <p className="text-xs text-slate-400">Complete tasks and earn real-time payout credit.</p>
             </div>
             <span className="text-xs font-bold bg-slate-100 text-slate-600 px-3 py-1 rounded-full">
               {taskList.length} Active Jobs

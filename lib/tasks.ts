@@ -23,3 +23,22 @@ export function saveTask(newTask: Task) {
   const updated = [newTask, ...current];
   localStorage.setItem('rofra_tasks', JSON.stringify(updated));
 }
+
+export function deleteTask(taskId: string) {
+  const current = getStoredTasks();
+  const updated = current.filter(t => t.id !== taskId);
+  localStorage.setItem('rofra_tasks', JSON.stringify(updated));
+}
+
+export function getWorkerBalance(): number {
+  if (typeof window === 'undefined') return 0;
+  const balance = localStorage.getItem('rofra_worker_balance');
+  return balance ? parseFloat(balance) : 0;
+}
+
+export function addWorkerBalance(amount: number): number {
+  const current = getWorkerBalance();
+  const updated = current + amount;
+  localStorage.setItem('rofra_worker_balance', updated.toString());
+  return updated;
+}
