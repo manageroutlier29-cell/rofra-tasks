@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import IntaSend from 'intasend-node';
 
 export async function POST(req: Request) {
   try {
@@ -19,36 +18,36 @@ export async function POST(req: Request) {
     const secretKey = process.env.INTASEND_SECRET_KEY || '';
     const isTest = process.env.INTASEND_IS_TEST === 'true';
 
-    if (!publishableKey || !secretKey) {
+    const baseUrl = isTest 
+      ? 'https://sandbox.intasend.com/api/v1/payment/mpesa-stk-push/' 
+      : 'https://payment.intasend.com/api/v1/payment/mpesa-stk-push/';
+
+    const response = await fetch(baseUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-IntaSend-Public-API-Key': publishableKey,
+      },
+      body: JSON.stringify({
+        amount: 250,
+        phone_number: formattedPhone,
+        api_ref: 'PRO_UPGRADE',
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
       return NextResponse.json(
-        { error: 'IntaSend API keys missing from Environment Variables' },
-        { status: 500 }
+        { error: data?.detail || data?.message || 'STK Push failed' },
+        { status: response.status }
       );
     }
 
-    // Initialize IntaSend SDK correctly
-    const intasend = new IntaSend(publishableKey, {
-      secretKey: secretKey,
-      test: isTest,
-    });
-
-    const collection = intasend.collection();
-
-    // Trigger M-Pesa STK Push
-    const response = await collection.mpesaStkPush({
-      first_name: 'ROFRA',
-      last_name: 'User',
-      email: 'user@rofratasks.com',
-      amount: 250,
-      phone_number: formattedPhone,
-      api_ref: 'PRO_UPGRADE',
-    });
-
-    return NextResponse.json({ success: true, data: response });
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
-    console.error('IntaSend STK Push Error:', error);
     return NextResponse.json(
-      { error: error?.message || 'STK Push failed to initiate' },
+      { error: error?.message || 'Network error initiating STK Push' },
       { status: 500 }
     );
   }
