@@ -10,15 +10,17 @@ export async function POST(req: Request) {
       formattedPhone = '254' + formattedPhone.slice(1);
     }
 
-    const secretKey = process.env.INTASEND_SECRET_KEY || 'ISSecretKey_live_xxxx';
+    const publicKey = process.env.NEXT_PUBLIC_INTASEND_PUBLISHABLE_KEY || '';
+    const secretKey = process.env.INTASEND_SECRET_KEY || '';
 
     const response = await fetch('https://payment.intasend.com/api/v1/checkout/mpesa-express/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${secretKey}`
       },
       body: JSON.stringify({
+        public_key: publicKey,
+        token: secretKey,
         amount: 250,
         phone_number: formattedPhone,
         email: email,
@@ -29,7 +31,8 @@ export async function POST(req: Request) {
     const data = await response.json();
 
     if (!response.ok) {
-      return NextResponse.json({ error: data.detail || 'Failed to trigger M-Pesa STK push.' }, { status: response.status });
+      const errorMsg = data.detail || JSON.stringify(data) || 'Failed to trigger M-Pesa STK push.';
+      return NextResponse.json({ error: errorMsg }, { status: response.status });
     }
 
     return NextResponse.json(data);
