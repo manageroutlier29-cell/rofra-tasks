@@ -13,66 +13,39 @@ export default function UpgradePage() {
   useEffect(() => {
     const userEmail = localStorage.getItem('userEmail') || '';
     setEmail(userEmail);
-
-    // Load IntaSend Inline Script
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/intasend-inlinejs-sdk@3.0.4/build/intasend-inline.js';
-    script.async = true;
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
   }, []);
 
-  const handleIntaSendPayment = async (e: React.FormEvent) => {
+  const handleMpesaPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    if (typeof window === 'undefined' || !(window as any).IntaSend) {
-      alert('IntaSend SDK loading... please try again in a few seconds.');
-      setLoading(false);
-      return;
-    }
+    try {
+      // 1. Send STK push request via backend API
+      const res = await fetch('/api/intasend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, email })
+      });
 
-    const publishableKey = process.env.NEXT_PUBLIC_INTASEND_PUBLISHABLE_KEY || 'ISPubKey_live_xxxx';
+      const data = await res.json();
 
-    const intasend = new (window as any).IntaSend({
-      public_key: publishableKey,
-      live: true
-    });
-
-    intasend
-      .on('COMPLETE', async (response: any) => {
-        // Automatically upgrade user in Supabase
-        const { error } = await supabase
+      if (res.ok) {
+        // 2. Mark worker as PRO in Supabase
+        await supabase
           .from('workers')
           .update({ is_pro: true })
           .eq('email', email);
 
-        if (!error) {
-          alert('Payment Successful! Your account has been upgraded to PRO.');
-          router.push('/dashboard');
-        } else {
-          alert('Payment received, but database update failed. Please contact admin.');
-        }
-        setLoading(false);
-      })
-      .on('FAILED', (response: any) => {
-        alert('Payment failed. Please try again.');
-        setLoading(false);
-      })
-      .on('IN-PROGRESS', () => {
-        alert('STK Push Sent! Enter your M-Pesa PIN on your phone to complete payment of KSh 250.');
-      });
-
-    intasend.run({
-      amount: 250,
-      currency: 'KES',
-      email: email,
-      phone_number: phone,
-      api_ref: `PRO_UPGRADE_${Date.now()}`
-    });
+        alert('STK Push Sent! Check your phone and enter M-Pesa PIN for KSh 250. Account upgraded to PRO!');
+        router.push('/dashboard');
+      } else {
+        alert(data.error || 'Failed to trigger M-Pesa prompt. Check your phone number.');
+      }
+    } catch (err: any) {
+      alert('Network error initiating payment.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -99,7 +72,7 @@ export default function UpgradePage() {
           </ul>
         </div>
 
-        <form onSubmit={handleIntaSendPayment} className="space-y-4">
+        <form onSubmit={handleMpesaPayment} className="space-y-4">
           <div>
             <label className="text-xs font-bold text-slate-700 block mb-1">M-Pesa Phone Number</label>
             <input 
@@ -117,7 +90,7 @@ export default function UpgradePage() {
             disabled={loading}
             className="w-full bg-[#2a7a4c] hover:bg-[#23683f] text-white font-black text-xs py-3.5 rounded-xl transition shadow"
           >
-            {loading ? 'Initiating M-Pesa Prompt...' : 'Pay KSh 250 via M-Pesa'}
+            {loading ? 'Sending M-Pesa Prompt...' : 'Pay KSh 250 via M-Pesa'}
           </button>
         </form>
       </div>
