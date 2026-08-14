@@ -2,159 +2,128 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAdmin } from '@/lib/auth';
-import { getStoredTasks, getWorkerBalance, addWorkerBalance, Task } from '@/lib/tasks';
+import { supabase } from '@/lib/supabase';
+import { getStoredTasks, Task } from '@/lib/tasks';
 
 export default function WorkerDashboard() {
   const router = useRouter();
-  const [userEmail, setUserEmail] = useState<string>('');
-  const [taskList, setTaskList] = useState<Task[]>([]);
-  const [balance, setBalance] = useState<number>(0);
-  const [withdrawAmount, setWithdrawAmount] = useState<string>('');
+  const [email, setEmail] = useState('');
+  const [isPro, setIsPro] = useState(false);
+  const [balance, setBalance] = useState(0);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
-    const storedEmail = localStorage.getItem('userEmail') || 'robertwaweru324@gmail.com';
-    setUserEmail(storedEmail);
-    setTaskList(getStoredTasks());
-    setBalance(getWorkerBalance());
+    const userEmail = localStorage.getItem('userEmail') || 'worker@rofratasks.com';
+    setEmail(userEmail);
+    fetchWorkerData(userEmail);
+    setTasks(getStoredTasks());
   }, []);
 
-  const userIsAdmin = isAdmin(userEmail);
-
-  const handleStartTask = (task: Task) => {
-    if (task.link) {
-      window.open(task.link, '_blank');
+  const fetchWorkerData = async (userEmail: string) => {
+    const { data } = await supabase.from('workers').select('*').eq('email', userEmail).single();
+    if (data) {
+      setIsPro(data.is_pro || false);
+      setBalance(data.balance || 0);
     }
-    const updated = addWorkerBalance(task.reward);
-    setBalance(updated);
-    alert(`Task started! KSh ${task.reward} added to your balance.`);
   };
 
-  const handleWithdraw = (e: React.FormEvent) => {
-    e.preventDefault();
-    const amount = parseFloat(withdrawAmount);
-
-    if (isNaN(amount) || amount < 1000) {
-      alert('Minimum withdrawal amount is KSh 1,000.');
-      return;
-    }
-
-    if (amount > 10000) {
-      alert('Maximum single withdrawal limit is KSh 10,000.');
-      return;
-    }
-
-    if (amount > balance) {
-      alert('Insufficient available balance.');
-      return;
-    }
-
-    alert(`Withdrawal request of KSh ${amount} submitted to Admin!`);
-    setWithdrawAmount('');
-  };
+  // Limit standard users to 3 tasks maximum
+  const visibleTasks = isPro ? tasks : tasks.slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-[#f8faf9] text-slate-800 font-sans">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#2a7a4c] to-emerald-500 text-white flex items-center justify-center font-black text-sm shadow-sm">
-              RT
-            </div>
-            <div>
-              <h1 className="text-base font-black text-slate-900 leading-tight">ROFRA TASKS</h1>
-              <p className="text-[11px] text-slate-500 font-medium">{userEmail}</p>
-            </div>
+    <div className="min-h-screen bg-[#f8faf9] text-slate-800 font-sans p-4 pb-20">
+      <div className="max-w-md mx-auto space-y-4">
+        
+        {/* Header */}
+        <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <div>
+            <h1 className="text-base font-black text-slate-900">ROFRA TASKS</h1>
+            <p className="text-xs text-slate-400">{email}</p>
           </div>
-
-          <div className="flex items-center gap-2">
-            {userIsAdmin && (
-              <button 
-                onClick={() => router.push('/admin')}
-                className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-sm transition"
-              >
-                ⚙️ Admin Panel
-              </button>
-            )}
-            <button 
-              onClick={() => router.push('/profile')}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl transition"
-            >
-              👤 Profile
-            </button>
-          </div>
+          <button 
+            onClick={() => router.push('/profile')}
+            className="text-xs font-bold bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition"
+          >
+            Profile ⚙️
+          </button>
         </div>
-      </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        <div className="bg-[#2a7a4c] text-white p-6 rounded-3xl shadow-md space-y-4">
+        {/* Balance Card */}
+        <div className="bg-[#2a7a4c] text-white p-5 rounded-3xl space-y-3 shadow-md">
           <div className="flex justify-between items-center">
-            <span className="text-xs uppercase font-extrabold text-emerald-200 tracking-wider">Available Balance</span>
-            <span className="text-[10px] bg-emerald-900/50 text-emerald-200 font-bold px-2.5 py-1 rounded-full border border-emerald-700/50">
-              {userIsAdmin ? 'ADMIN ACCOUNT' : 'STANDARD ACCOUNT'}
+            <span className="text-xs font-medium text-emerald-100">Available Balance</span>
+            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${isPro ? 'bg-amber-400 text-slate-900' : 'bg-emerald-800 text-emerald-200'}`}>
+              {isPro ? '👑 PRO WORKER' : 'STANDARD WORKER'}
             </span>
           </div>
-          <div className="text-4xl font-black">KSh {balance.toFixed(2)}</div>
+          <div className="text-2xl font-black">KSh {balance.toFixed(2)}</div>
           
-          {!userIsAdmin && (
-            <div className="space-y-3 pt-2">
-              <form onSubmit={handleWithdraw} className="flex gap-2">
-                <input 
-                  type="number" 
-                  placeholder="Enter KSh (1,000 - 10,000)" 
-                  value={withdrawAmount} 
-                  onChange={(e) => setWithdrawAmount(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl text-slate-900 font-bold bg-white outline-none"
-                />
-                <button 
-                  type="submit"
-                  className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs py-2 px-4 rounded-xl transition whitespace-nowrap"
-                >
-                  Withdraw
-                </button>
-              </form>
-              <p className="text-[10px] text-emerald-200 font-semibold text-center">
-                Limits: Min KSh 1,000 | Max KSh 10,000 per request
-              </p>
+          <div className="pt-2 flex gap-2">
+            {isPro ? (
+              <button 
+                onClick={() => router.push('/withdraw')}
+                className="w-full bg-white text-[#2a7a4c] font-black text-xs py-2.5 rounded-xl shadow hover:bg-emerald-50 transition"
+              >
+                Withdraw (Wednesdays Only)
+              </button>
+            ) : (
+              <button 
+                onClick={() => router.push('/upgrade')}
+                className="w-full bg-amber-400 text-slate-900 font-black text-xs py-2.5 rounded-xl shadow hover:bg-amber-300 transition"
+              >
+                🔒 Upgrade KSh 250 to Withdraw
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Upgrade Banner for Non-Pro */}
+        {!isPro && (
+          <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl space-y-1 text-amber-900">
+            <div className="text-xs font-black flex items-center gap-1">⚠️ Standard Mode (Restricted)</div>
+            <p className="text-[11px] leading-relaxed">
+              You are viewing <strong>3 standard tasks</strong>. Upgrade to Pro for KSh 250 to unlock high-paying Pro tasks and enable Wednesday M-Pesa withdrawals.
+            </p>
+          </div>
+        )}
+
+        {/* Task List */}
+        <div className="space-y-3">
+          <h2 className="text-xs font-black text-slate-500 uppercase tracking-wider">
+            {isPro ? 'All Available Tasks' : 'Standard Tasks (3 Max)'}
+          </h2>
+
+          {visibleTasks.map((task) => (
+            <div key={task.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+              <div>
+                <div className="text-xs font-bold text-slate-900">{task.title}</div>
+                <div className="text-[10px] font-semibold text-emerald-600 mt-0.5">Earn KSh {task.reward}</div>
+              </div>
+              <a 
+                href={task.link} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="bg-[#2a7a4c] hover:bg-[#23683f] text-white font-bold text-xs px-3 py-2 rounded-xl transition"
+              >
+                Start Task
+              </a>
+            </div>
+          ))}
+
+          {!isPro && (
+            <div className="bg-slate-100 p-4 rounded-2xl border border-dashed border-slate-300 text-center space-y-2">
+              <div className="text-xs font-bold text-slate-500">🔒 Pro Tasks Locked</div>
+              <button 
+                onClick={() => router.push('/upgrade')}
+                className="text-xs font-bold text-emerald-700 underline"
+              >
+                Pay KSh 250 to see remaining premium tasks
+              </button>
             </div>
           )}
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-base font-black text-slate-900">Available Daily Tasks</h2>
-              <p className="text-xs text-slate-400">Complete tasks and earn real-time payout credit.</p>
-            </div>
-            <span className="text-xs font-bold bg-slate-100 text-slate-600 px-3 py-1 rounded-full">
-              {taskList.length} Active Jobs
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {taskList.map((task) => (
-              <div key={task.id} className="p-4 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200/80 transition flex justify-between items-center">
-                <div className="space-y-1">
-                  <span className="text-[9px] font-extrabold uppercase bg-emerald-100 text-[#2a7a4c] px-2 py-0.5 rounded-md">
-                    {task.category || 'Micro Task'}
-                  </span>
-                  <div className="text-xs font-bold text-slate-800">{task.title}</div>
-                  <div className="text-[10px] text-slate-400">Est. Time: {task.timeEstimate || '2 mins'}</div>
-                </div>
-                <div className="text-right space-y-1">
-                  <div className="text-sm font-black text-[#2a7a4c]">KSh {task.reward}.00</div>
-                  <button 
-                    onClick={() => handleStartTask(task)}
-                    className="bg-[#2a7a4c] hover:bg-[#23683f] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition"
-                  >
-                    Start Task
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }
