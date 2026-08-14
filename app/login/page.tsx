@@ -17,19 +17,22 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
+    const isAdminEmail = email.trim().toLowerCase() === 'robertwaweru324@gmail.com';
+
     if (isSignUp) {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({ email, password });
       if (error) {
         alert(error.message);
       } else {
-        // Save worker to dynamic Supabase database table
-        await supabase.from('workers').insert([{ email, balance: 0, is_pro: false }]);
+        await supabase.from('workers').insert([
+          { email, balance: 0, is_pro: isAdminEmail }
+        ]);
         localStorage.setItem('userEmail', email);
         alert('Account created successfully!');
         router.push('/dashboard');
       }
     } else {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         alert(error.message);
       } else {

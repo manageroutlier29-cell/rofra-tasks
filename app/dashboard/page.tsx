@@ -13,47 +13,63 @@ export default function WorkerDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
-    const userEmail = localStorage.getItem('userEmail') || 'worker@rofratasks.com';
+    const userEmail = localStorage.getItem('userEmail') || 'robertwaweru324@gmail.com';
     setEmail(userEmail);
+
+    if (userEmail.trim().toLowerCase() === 'robertwaweru324@gmail.com') {
+      setIsPro(true);
+    }
+
     fetchWorkerData(userEmail);
     setTasks(getStoredTasks());
   }, []);
 
   const fetchWorkerData = async (userEmail: string) => {
+    const isAdmin = userEmail.trim().toLowerCase() === 'robertwaweru324@gmail.com';
     const { data } = await supabase.from('workers').select('*').eq('email', userEmail).single();
+    
     if (data) {
-      setIsPro(data.is_pro || false);
+      setIsPro(isAdmin || data.is_pro || false);
       setBalance(data.balance || 0);
+    } else if (isAdmin) {
+      setIsPro(true);
     }
   };
 
-  // Limit standard users to 3 tasks maximum
   const visibleTasks = isPro ? tasks : tasks.slice(0, 3);
 
   return (
     <div className="min-h-screen bg-[#f8faf9] text-slate-800 font-sans p-4 pb-20">
       <div className="max-w-md mx-auto space-y-4">
         
-        {/* Header */}
         <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <div>
             <h1 className="text-base font-black text-slate-900">ROFRA TASKS</h1>
             <p className="text-xs text-slate-400">{email}</p>
           </div>
-          <button 
-            onClick={() => router.push('/profile')}
-            className="text-xs font-bold bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition"
-          >
-            Profile ⚙️
-          </button>
+          <div className="flex gap-2">
+            {email.trim().toLowerCase() === 'robertwaweru324@gmail.com' && (
+              <button 
+                onClick={() => router.push('/admin')}
+                className="text-xs font-bold bg-amber-500 text-white px-3 py-1.5 rounded-xl transition"
+              >
+                ⚙️ Admin
+              </button>
+            )}
+            <button 
+              onClick={() => router.push('/profile')}
+              className="text-xs font-bold bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition"
+            >
+              Profile 👤
+            </button>
+          </div>
         </div>
 
-        {/* Balance Card */}
         <div className="bg-[#2a7a4c] text-white p-5 rounded-3xl space-y-3 shadow-md">
           <div className="flex justify-between items-center">
             <span className="text-xs font-medium text-emerald-100">Available Balance</span>
             <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${isPro ? 'bg-amber-400 text-slate-900' : 'bg-emerald-800 text-emerald-200'}`}>
-              {isPro ? '👑 PRO WORKER' : 'STANDARD WORKER'}
+              {email.trim().toLowerCase() === 'robertwaweru324@gmail.com' ? '👑 ADMIN PRO' : isPro ? '👑 PRO WORKER' : 'STANDARD WORKER'}
             </span>
           </div>
           <div className="text-2xl font-black">KSh {balance.toFixed(2)}</div>
@@ -64,7 +80,7 @@ export default function WorkerDashboard() {
                 onClick={() => router.push('/withdraw')}
                 className="w-full bg-white text-[#2a7a4c] font-black text-xs py-2.5 rounded-xl shadow hover:bg-emerald-50 transition"
               >
-                Withdraw (Wednesdays Only)
+                Withdraw (Wednesday Payouts)
               </button>
             ) : (
               <button 
@@ -77,7 +93,6 @@ export default function WorkerDashboard() {
           </div>
         </div>
 
-        {/* Upgrade Banner for Non-Pro */}
         {!isPro && (
           <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl space-y-1 text-amber-900">
             <div className="text-xs font-black flex items-center gap-1">⚠️ Standard Mode (Restricted)</div>
@@ -87,7 +102,6 @@ export default function WorkerDashboard() {
           </div>
         )}
 
-        {/* Task List */}
         <div className="space-y-3">
           <h2 className="text-xs font-black text-slate-500 uppercase tracking-wider">
             {isPro ? 'All Available Tasks' : 'Standard Tasks (3 Max)'}
@@ -109,18 +123,6 @@ export default function WorkerDashboard() {
               </a>
             </div>
           ))}
-
-          {!isPro && (
-            <div className="bg-slate-100 p-4 rounded-2xl border border-dashed border-slate-300 text-center space-y-2">
-              <div className="text-xs font-bold text-slate-500">🔒 Pro Tasks Locked</div>
-              <button 
-                onClick={() => router.push('/upgrade')}
-                className="text-xs font-bold text-emerald-700 underline"
-              >
-                Pay KSh 250 to see remaining premium tasks
-              </button>
-            </div>
-          )}
         </div>
 
       </div>
