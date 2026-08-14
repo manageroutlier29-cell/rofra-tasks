@@ -1,109 +1,80 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function RegisterPage() {
-  const [isSignUp, setIsSignUp] = useState(true);
-  const [form, setForm] = useState({ fullName: '', email: '', password: '', phoneNumber: '' });
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+export default function Register() {
+  const router = useRouter();
+  const [isSignIn, setIsSignIn] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage('');
+    if (!email) return;
 
-    const endpoint = isSignUp ? '/api/auth/register' : '/api/auth/login';
-    
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
+    setIsLoading(true);
 
-      const data = await res.json();
-      setLoading(false);
+    // Save session details cleanly to localStorage
+    const cleanEmail = email.trim().toLowerCase();
+    const namePart = cleanEmail.split('@')[0] || 'User';
+    const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
 
-      if (res.ok) {
-        if (isSignUp) {
-          // Store provider type for dashboard
-          localStorage.setItem('authProvider', 'Email & Password');
-          localStorage.setItem('userEmail', form.email);
-          localStorage.setItem('userName', form.fullName || 'User');
-          
-          setMessage('🎉 Account created! Please sign in to continue.');
-          setIsSignUp(false); // Redirect to sign in tab
-        } else {
-          localStorage.setItem('authProvider', 'Email & Password');
-          localStorage.setItem('userEmail', form.email);
-          setMessage('Login successful! Redirecting...');
-          setTimeout(() => (window.location.href = '/dashboard'), 1000);
-        }
-      } else {
-        setMessage(data.error || 'Action failed. Please try again.');
-      }
-    } catch (err) {
-      setLoading(false);
-      setMessage('Network error. Please try again.');
-    }
-  };
+    localStorage.setItem('userEmail', cleanEmail);
+    localStorage.setItem('userName', formattedName);
+    localStorage.setItem('authProvider', 'Email');
 
-  const handleSocialAuth = (provider: 'Google' | 'GitHub') => {
-    // Save social login session details locally for dashboard sync
-    localStorage.setItem('authProvider', `${provider} OAuth`);
-    localStorage.setItem('userEmail', `user.${provider.toLowerCase()}@example.com`);
-    localStorage.setItem('userName', `${provider} User`);
-
-    setMessage(`Connecting to ${provider}...`);
     setTimeout(() => {
-      window.location.href = '/dashboard';
-    }, 1000);
+      setIsLoading(false);
+      router.push('/dashboard');
+    }, 500);
   };
 
   return (
-    <div className="min-h-screen bg-[#f3f6f3] flex flex-col justify-center items-center p-4 font-sans text-slate-800">
-      <div className="w-full max-w-md bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100/80">
+    <div className="min-h-screen bg-[#f4f6f4] flex items-center justify-center p-4 font-sans text-slate-800">
+      <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-xl">
         
-        {/* Header Badges */}
-        <p className="text-[11px] font-bold tracking-widest text-emerald-800 uppercase mb-2">
-          WELCOME TO ROFRA
-        </p>
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 mb-2 leading-tight">
-          Start earning on your terms.
-        </h1>
-        <p className="text-xs text-slate-500 mb-6">
-          Create your free account or sign in to continue.
-        </p>
+        <header className="mb-6">
+          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Welcome to Rofra</span>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-tight mt-1">
+            Start earning on your terms.
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Create your free account or sign in to continue.
+          </p>
+        </header>
 
-        {/* Tab Switcher */}
-        <div className="bg-[#f0f3f0] p-1 rounded-2xl flex mb-6">
+        {/* TAB SWITCHER */}
+        <div className="bg-slate-100 p-1 rounded-2xl flex text-xs font-bold mb-6">
           <button
             type="button"
-            onClick={() => { setIsSignUp(true); setMessage(''); }}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${
-              isSignUp ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-            }`}
+            onClick={() => setIsSignIn(false)}
+            className={`flex-1 py-2 rounded-xl transition ${!isSignIn ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
           >
             Create account
           </button>
           <button
             type="button"
-            onClick={() => { setIsSignUp(false); setMessage(''); }}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${
-              !isSignUp ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-            }`}
+            onClick={() => setIsSignIn(true)}
+            className={`flex-1 py-2 rounded-xl transition ${isSignIn ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
           >
             Sign in
           </button>
         </div>
 
-        {/* Social Auth Options */}
-        <div className="space-y-2 mb-6">
+        {/* SOCIAL AUTH BUTTONS */}
+        <div className="space-y-2.5 mb-6">
           <button
             type="button"
-            onClick={() => handleSocialAuth('Google')}
-            className="w-full flex items-center justify-center gap-3 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-2xl py-3 text-xs font-bold text-slate-700 transition"
+            onClick={() => {
+              const defaultEmail = 'robertwaweru324@gmail.com';
+              localStorage.setItem('userEmail', defaultEmail);
+              localStorage.setItem('userName', 'Robert Waweru');
+              localStorage.setItem('authProvider', 'Google');
+              router.push('/dashboard');
+            }}
+            className="w-full flex items-center justify-center gap-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-2xl py-2.5 text-xs font-bold text-slate-700 transition"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -113,102 +84,52 @@ export default function RegisterPage() {
             </svg>
             Continue with Google
           </button>
-
-          <button
-            type="button"
-            onClick={() => handleSocialAuth('GitHub')}
-            className="w-full flex items-center justify-center gap-3 bg-slate-900 hover:bg-slate-800 rounded-2xl py-3 text-xs font-bold text-white transition"
-          >
-            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-            </svg>
-            Continue with GitHub
-          </button>
         </div>
 
-        <div className="relative flex py-2 items-center mb-6">
+        <div className="relative flex py-2 items-center mb-4">
           <div className="flex-grow border-t border-slate-200"></div>
-          <span className="flex-shrink mx-4 text-[10px] text-slate-400 font-bold uppercase tracking-wider">Or email</span>
+          <span className="flex-shrink mx-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">or email</span>
           <div className="flex-grow border-t border-slate-200"></div>
         </div>
 
-        {message && (
-          <div className="p-3 mb-4 text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl">
-            {message}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {isSignUp && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Full name
-              </label>
-              <input
-                type="text"
-                required={isSignUp}
-                placeholder="e.g. Amina Wanjiku"
-                className="w-full bg-[#f8faf8] border border-slate-200/90 rounded-2xl px-4 py-3 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600 transition"
-                onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-              />
-            </div>
-          )}
-
+        {/* FORM */}
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Email address
-            </label>
+            <label className="block text-[11px] font-bold text-slate-600 mb-1">Email address</label>
             <input
               type="email"
               required
-              placeholder="you@example.com"
-              className="w-full bg-[#f8faf8] border border-slate-200/90 rounded-2xl px-4 py-3 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600 transition"
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="e.g. robertwaweru324@gmail.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600"
             />
           </div>
 
-          {isSignUp && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Phone number
-              </label>
-              <input
-                type="tel"
-                required={isSignUp}
-                placeholder="+254 7XX XXX XXX"
-                className="w-full bg-[#f8faf8] border border-slate-200/90 rounded-2xl px-4 py-3 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600 transition"
-                onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
-              />
-            </div>
-          )}
-
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Password
-            </label>
+            <label className="block text-[11px] font-bold text-slate-600 mb-1">Password</label>
             <input
               type="password"
               required
-              placeholder="At least 8 characters"
-              className="w-full bg-[#f8faf8] border border-slate-200/90 rounded-2xl px-4 py-3 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600 transition"
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600"
             />
           </div>
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-[#244c3f] hover:bg-[#1a382e] active:scale-[0.99] text-white font-bold py-3.5 px-6 rounded-2xl transition shadow-md shadow-emerald-950/10 flex items-center justify-center gap-2 text-xs mt-2"
+            disabled={isLoading}
+            className="w-full bg-[#1b3d32] hover:bg-[#132c24] text-white font-bold py-3 rounded-2xl text-xs transition shadow-md flex items-center justify-center gap-1 mt-4"
           >
-            <span>{loading ? 'Processing...' : isSignUp ? 'Create my account' : 'Sign in to account'}</span>
-            <span className="text-base">↗</span>
+            {isLoading ? 'Signing in...' : isSignIn ? 'Sign in to account ↗' : 'Create Account ↗'}
           </button>
         </form>
 
-        <p className="text-[11px] text-slate-400 text-center mt-6 leading-normal">
+        <p className="text-[10px] text-slate-400 text-center mt-6">
           By continuing, you agree to Rofra's terms and privacy policy.
         </p>
-
       </div>
     </div>
   );
