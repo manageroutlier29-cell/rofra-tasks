@@ -1,24 +1,78 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export default function UpgradePage() {
   const router = useRouter();
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handlePay = (e: React.FormEvent) => {
+  useEffect(() => {
+    const userEmail = localStorage.getItem('userEmail') || '';
+    setEmail(userEmail);
+
+    // Load IntaSend Inline Script
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/intasend-inlinejs-sdk@3.0.4/build/intasend-inline.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  const handleIntaSendPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone) return;
     setLoading(true);
 
-    setTimeout(() => {
+    if (typeof window === 'undefined' || !(window as any).IntaSend) {
+      alert('IntaSend SDK loading... please try again in a few seconds.');
       setLoading(false);
-      localStorage.setItem('isProWorker', 'true');
-      alert('STK Push Sent! Enter your M-Pesa PIN on your phone to complete payment of KSh 250.');
-      router.push('/dashboard');
-    }, 1500);
+      return;
+    }
+
+    const publishableKey = process.env.NEXT_PUBLIC_INTASEND_PUBLISHABLE_KEY || 'ISPubKey_live_xxxx';
+
+    const intasend = new (window as any).IntaSend({
+      public_key: publishableKey,
+      live: true
+    });
+
+    intasend
+      .on('COMPLETE', async (response: any) => {
+        // Automatically upgrade user in Supabase
+        const { error } = await supabase
+          .from('workers')
+          .update({ is_pro: true })
+          .eq('email', email);
+
+        if (!error) {
+          alert('Payment Successful! Your account has been upgraded to PRO.');
+          router.push('/dashboard');
+        } else {
+          alert('Payment received, but database update failed. Please contact admin.');
+        }
+        setLoading(false);
+      })
+      .on('FAILED', (response: any) => {
+        alert('Payment failed. Please try again.');
+        setLoading(false);
+      })
+      .on('IN-PROGRESS', () => {
+        alert('STK Push Sent! Enter your M-Pesa PIN on your phone to complete payment of KSh 250.');
+      });
+
+    intasend.run({
+      amount: 250,
+      currency: 'KES',
+      email: email,
+      phone_number: phone,
+      api_ref: `PRO_UPGRADE_${Date.now()}`
+    });
   };
 
   return (
@@ -29,38 +83,39 @@ export default function UpgradePage() {
         </button>
 
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto text-2xl font-black">
+          <div className="w-12 h-12 bg-amber-400 text-slate-900 rounded-2xl flex items-center justify-center mx-auto text-xl font-black">
             👑
           </div>
-          <h1 className="text-xl font-black text-slate-900">Upgrade to Pro Account</h1>
-          <p className="text-xs text-slate-500">
-            Pay a one-time fee of <span className="font-bold text-emerald-600">KSh 250</span> to unlock premium tasks and instant M-Pesa withdrawals.
-          </p>
+          <h1 className="text-xl font-black text-slate-900">Upgrade to PRO</h1>
+          <p className="text-xs text-slate-500">Unlock high-paying Pro tasks & weekly Wednesday M-Pesa withdrawals.</p>
         </div>
 
-        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2 text-xs text-slate-600">
-          <div className="flex items-center gap-2">✅ Unlock unlimited daily tasks</div>
-          <div className="flex items-center gap-2">✅ Enable instant M-Pesa withdrawals (Min KSh 1,000)</div>
-          <div className="flex items-center gap-2">✅ Priority 24/7 worker support</div>
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl space-y-2 text-xs text-amber-900">
+          <div className="font-bold">PRO Member Benefits:</div>
+          <ul className="list-disc list-inside space-y-1 text-[11px]">
+            <li>Access to all high-reward tasks (Unlimited)</li>
+            <li>Weekly Wednesday direct M-Pesa payouts</li>
+            <li>One-time fee of KSh 250</li>
+          </ul>
         </div>
 
-        <form onSubmit={handlePay} className="space-y-4">
+        <form onSubmit={handleIntaSendPayment} className="space-y-4">
           <div>
             <label className="text-xs font-bold text-slate-700 block mb-1">M-Pesa Phone Number</label>
             <input 
               type="tel" 
-              placeholder="0712345678" 
+              placeholder="254712345678" 
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:outline-emerald-600"
-              required
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-900 font-bold"
+              required 
             />
           </div>
 
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-[#2a7a4c] hover:bg-[#23683f] text-white font-black text-xs py-3 rounded-xl transition shadow-md"
+            className="w-full bg-[#2a7a4c] hover:bg-[#23683f] text-white font-black text-xs py-3.5 rounded-xl transition shadow"
           >
             {loading ? 'Initiating M-Pesa Prompt...' : 'Pay KSh 250 via M-Pesa'}
           </button>
