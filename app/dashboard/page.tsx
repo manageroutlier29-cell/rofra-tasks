@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 type Task = {
   id: number;
@@ -30,9 +30,9 @@ const DEFAULT_TASKS = [
 ];
 
 export default function Dashboard() {
+  const router = useRouter();
   const [userName, setUserName] = useState('robert');
   const [balance, setBalance] = useState(10.00);
-  const [isPro, setIsPro] = useState(false);
 
   // Modals state
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -61,8 +61,12 @@ export default function Dashboard() {
 
   const handleProcessWithdrawal = (e: React.FormEvent) => {
     e.preventDefault();
-    // Intercept with Pro Required modal like in screenshot 4
     setWithdrawStep('pro_required');
+  };
+
+  const handleNavigateToUpgrade = () => {
+    setShowWithdrawModal(false);
+    router.push('/upgrade');
   };
 
   return (
@@ -158,7 +162,7 @@ export default function Dashboard() {
             <span className="text-xs font-black text-slate-800 flex items-center gap-1">💻 Free Account</span>
           </div>
           <button 
-            onClick={() => setWithdrawStep('pro_required')}
+            onClick={handleNavigateToUpgrade}
             className="bg-[#f28c28] hover:bg-[#e07b18] text-white text-[11px] font-bold px-4 py-2 rounded-xl transition shadow-sm"
           >
             Upgrade
@@ -191,10 +195,7 @@ export default function Dashboard() {
                 </button>
               ) : (
                 <button 
-                  onClick={() => {
-                    setWithdrawStep('pro_required');
-                    setShowWithdrawModal(true);
-                  }}
+                  onClick={handleNavigateToUpgrade}
                   className="w-full mt-3 bg-[#e2ece0] text-[#336842] text-[10px] font-bold py-2 rounded-xl transition flex items-center justify-center gap-1"
                 >
                   🔒 Upgrade
@@ -360,7 +361,7 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <button 
-                  onClick={() => alert('Redirecting to account upgrade payment...')}
+                  onClick={handleNavigateToUpgrade}
                   className="w-full bg-[#2a7a4c] hover:bg-[#23683f] text-white font-bold py-3 rounded-xl text-xs transition shadow-md mt-2"
                 >
                   Upgrade to Pro
