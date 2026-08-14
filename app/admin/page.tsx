@@ -2,16 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAdmin } from '@/lib/auth';
 import { getStoredTasks, saveTask, deleteTask, Task } from '@/lib/tasks';
+import { supabase } from '@/lib/supabase';
 
 interface Worker {
   id: string;
-  name: string;
   email: string;
   balance: number;
-  pendingWithdrawal: number;
-  phone: string;
+  is_pro: boolean;
 }
 
 export default function AdminDashboard() {
@@ -20,10 +18,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'tasks' | 'payouts' | 'workers'>('tasks');
 
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [workers, setWorkers] = useState<Worker[]>([
-    { id: '1', name: 'James Kariuki', email: 'james@gmail.com', balance: 450, pendingWithdrawal: 250, phone: '0712345678' },
-    { id: '2', name: 'Mary Wanjiku', email: 'mary@gmail.com', balance: 1200, pendingWithdrawal: 1000, phone: '0722000111' },
-  ]);
+  const [workers, setWorkers] = useState<Worker[]>([]);
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskReward, setNewTaskReward] = useState('');
@@ -34,7 +29,13 @@ export default function AdminDashboard() {
     const email = localStorage.getItem('userEmail') || 'robertwaweru324@gmail.com';
     setCurrentUserEmail(email);
     setTasks(getStoredTasks());
+    fetchWorkers();
   }, []);
+
+  const fetchWorkers = async () => {
+    const { data } = await supabase.from('workers').select('*');
+    if (data) setWorkers(data);
+  };
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,14 +66,10 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleApprovePayout = (workerId: string) => {
-    setWorkers(workers.map(w => w.id === workerId ? { ...w, pendingWithdrawal: 0 } : w));
-    alert('Payment marked as processed!');
-  };
-
-  const handleDeleteWorker = (workerId: string) => {
+  const handleDeleteWorker = async (workerId: string) => {
     if (confirm('Are you sure you want to delete this worker account?')) {
-      setWorkers(workers.filter(w => w.id !== workerId));
+      await supabase.from('workers').delete().eq('id', workerId);
+      fetchWorkers();
     }
   };
 
@@ -104,16 +101,10 @@ export default function AdminDashboard() {
             ➕ Tasks ({tasks.length})
           </button>
           <button 
-            onClick={() => setActiveTab('payouts')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'payouts' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400'}`}
-          >
-            💳 Payout Requests ({workers.filter(w => w.pendingWithdrawal > 0).length})
-          </button>
-          <button 
             onClick={() => setActiveTab('workers')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === 'workers' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400'}`}
           >
-            👥 Manage Workers ({workers.length})
+            👥 Registered Workers ({workers.length})
           </button>
         </div>
 
@@ -182,29 +173,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'payouts' && (
-          <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 space-y-4">
-            <h2 className="text-base font-bold text-amber-400">Pending Manual M-Pesa Withdrawals</h2>
-            <div className="space-y-3">
-              {workers.filter(w => w.pendingWithdrawal > 0).map(worker => (
-                <div key={worker.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-slate-900 rounded-xl border border-slate-700/50 gap-3">
-                  <div>
-                    <div className="font-bold text-sm">{worker.name} ({worker.email})</div>
-                    <div className="text-xs text-slate-400">M-Pesa: <span className="text-emerald-400 font-mono">{worker.phone}</span></div>
-                    <div className="text-xs font-bold text-amber-400">Amount Requested: KSh {worker.pendingWithdrawal}</div>
-                  </div>
-                  <button 
-                    onClick={() => handleApprovePayout(worker.id)}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow"
-                  >
-                    Mark as Paid
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {activeTab === 'workers' && (
           <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 space-y-4">
             <h2 className="text-base font-bold text-slate-200">Registered Platform Workers</h2>
@@ -212,8 +180,8 @@ export default function AdminDashboard() {
               {workers.map(worker => (
                 <div key={worker.id} className="flex justify-between items-center p-3 bg-slate-900 rounded-xl border border-slate-700/50">
                   <div>
-                    <div className="font-bold text-sm">{worker.name}</div>
-                    <div className="text-xs text-slate-400">{worker.email} • {worker.phone}</div>
+                    <div className="font-bold text-sm">{worker.email}</div>
+                    <div className="text-xs text-slate-400">Balance: KSh {worker.balance} • {worker.is_pro ? '👑 Pro' : 'Standard'}</div>
                   </div>
                   <button 
                     onClick={() => handleDeleteWorker(worker.id)}
@@ -223,6 +191,9 @@ export default function AdminDashboard() {
                   </button>
                 </div>
               ))}
+              {workers.length === 0 && (
+                <p className="text-xs text-slate-500 py-4 text-center">No registered workers found in database.</p>
+              )}
             </div>
           </div>
         )}

@@ -22,6 +22,8 @@ export default function LoginPage() {
       if (error) {
         alert(error.message);
       } else {
+        // Save worker to dynamic Supabase database table
+        await supabase.from('workers').insert([{ email, balance: 0, is_pro: false }]);
         localStorage.setItem('userEmail', email);
         alert('Account created successfully!');
         router.push('/dashboard');
