@@ -13,12 +13,19 @@ export default function AdminBackendPage() {
   const [activeTab, setActiveTab] = useState<'reviews' | 'users' | 'tasks'>('reviews');
   
   const [submissions, setSubmissions] = useState<any[]>([]);
-  const [workers, setWorkers] = useState<any[]>([]);
+  const [userList, setUserList] = useState<string[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
-    const email = localStorage.getItem('userEmail') || 'admin@rofra.com';
+    const email = localStorage.getItem('userEmail') || '';
     setCurrentUser(email);
+
+    // Redirect non-admin users away
+    if (email && email !== 'robertwaweru324@gmail.com') {
+      alert('Access denied: Admin only.');
+      router.push('/dashboard');
+      return;
+    }
 
     fetchAdminData();
     loadTasks();
@@ -27,14 +34,9 @@ export default function AdminBackendPage() {
   const fetchAdminData = async () => {
     let remoteSubs: any[] = [];
     try {
-      const { data: workerData } = await supabase.from('workers').select('*');
-      if (workerData) setWorkers(workerData);
-
       const { data: subData } = await supabase.from('task_submissions').select('*').order('created_at', { ascending: false });
       if (subData) remoteSubs = subData;
-    } catch (e) {
-      console.warn('Remote database fetch skipped');
-    }
+    } catch (e) {}
 
     const localSubs = JSON.parse(localStorage.getItem('rofra_pending_submissions') || '[]');
     
@@ -46,6 +48,17 @@ export default function AdminBackendPage() {
     });
 
     setSubmissions(combined);
+
+    // Build real list of users from submissions and active login email
+    const registeredEmails = Array.from(
+      new Set([
+        'robertwaweru324@gmail.com',
+        ...combined.map((s) => s.worker_email).filter(Boolean),
+        localStorage.getItem('userEmail') || ''
+      ])
+    ).filter(Boolean);
+
+    setUserList(registeredEmails);
   };
 
   const loadTasks = async () => {
@@ -64,7 +77,7 @@ export default function AdminBackendPage() {
     );
     localStorage.setItem('rofra_pending_submissions', JSON.stringify(updatedLocal));
 
-    alert(`Correct Answer Approved! KSh ${sub.reward} credited to ${sub.worker_email}`);
+    alert(`Approved! Credited KSh ${sub.reward} to ${sub.worker_email}`);
     fetchAdminData();
   };
 
@@ -79,7 +92,7 @@ export default function AdminBackendPage() {
     );
     localStorage.setItem('rofra_pending_submissions', JSON.stringify(updatedLocal));
 
-    alert(`Submission rejected for ${sub.worker_email}`);
+    alert(`Rejected submission for ${sub.worker_email}`);
     fetchAdminData();
   };
 
@@ -111,12 +124,12 @@ export default function AdminBackendPage() {
                 activeTab === tab ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
               }`}
             >
-              {tab === 'reviews' ? `Review Queue (${submissions.length})` : tab}
+              {tab === 'reviews' ? `Review Queue (${submissions.length})` : tab === 'users' ? `Registered Users (${userList.length})` : tab}
             </button>
           ))}
         </div>
 
-        {/* Answer Quality Review Queue */}
+        {/* Review Tab */}
         {activeTab === 'reviews' && (
           <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-4">
             <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">
@@ -125,7 +138,7 @@ export default function AdminBackendPage() {
 
             {submissions.length === 0 ? (
               <div className="text-center py-8 text-xs text-slate-500">
-                No submitted answers pending review yet.
+                No submitted answers pending review.
               </div>
             ) : (
               <div className="space-y-4">
@@ -138,9 +151,8 @@ export default function AdminBackendPage() {
                           <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
                             {s.category || 'Academic Task'}
                           </span>
-                          {/* Worker Account Badge */}
                           <span className="bg-slate-800 text-emerald-300 font-mono text-[10px] px-2 py-0.5 rounded-md border border-slate-700 font-bold">
-                            User: {s.worker_email || 'robertwaweru324@gmail.com'}
+                            User: {s.worker_email}
                           </span>
                         </div>
                         <h3 className="text-sm font-black text-white">{s.task_title}</h3>
@@ -151,17 +163,15 @@ export default function AdminBackendPage() {
                       </span>
                     </div>
 
-                    {/* Submitted Work */}
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold text-slate-400 uppercase">
-                        Answer Submission by <span className="text-emerald-400">{s.worker_email || 'User'}</span>:
+                        Answer Submission by <span className="text-emerald-400">{s.worker_email}</span>:
                       </span>
                       <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 text-xs text-slate-200 font-mono whitespace-pre-wrap leading-relaxed">
                         {s.proof_text}
                       </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex justify-between items-center pt-2">
                       <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg ${
                         s.status === 'approved' 
@@ -198,15 +208,23 @@ export default function AdminBackendPage() {
           </div>
         )}
 
-        {/* Users Tab */}
+        {/* Dynamic Registered Users Tab */}
         {activeTab === 'users' && (
           <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-3">
-            <h2 className="text-xs font-black uppercase text-slate-400">Registered Accounts</h2>
+            <h2 className="text-xs font-black uppercase text-slate-400">Registered Accounts ({userList.length})</h2>
             <div className="divide-y divide-slate-800 text-xs">
-              <div className="py-2 flex justify-between items-center">
-                <span className="font-bold text-white">robertwaweru324@gmail.com</span>
-                <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded font-bold border border-emerald-500/30">Active Worker</span>
-              </div>
+              {userList.map((uEmail, idx) => (
+                <div key={idx} className="py-2.5 flex justify-between items-center">
+                  <span className="font-bold text-white">{uEmail}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold border ${
+                    uEmail === 'robertwaweru324@gmail.com' 
+                      ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' 
+                      : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  }`}>
+                    {uEmail === 'robertwaweru324@gmail.com' ? 'Admin' : 'Worker'}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         )}

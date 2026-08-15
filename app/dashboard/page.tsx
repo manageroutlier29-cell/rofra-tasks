@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchAllTasks, Task } from '@/lib/tasks';
 
+const ADMIN_EMAIL = 'robertwaweru324@gmail.com';
+
 export default function DashboardPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -12,19 +14,16 @@ export default function DashboardPage() {
   const [pendingSubmissions, setPendingSubmissions] = useState<any[]>([]);
 
   useEffect(() => {
-    const userEmail = localStorage.getItem('userEmail') || 'robertwaweru324@gmail.com';
+    const userEmail = localStorage.getItem('userEmail') || '';
     setEmail(userEmail);
 
-    // Load pending submissions from local backup storage
     const localSubs = JSON.parse(localStorage.getItem('rofra_pending_submissions') || '[]');
     const userSubs = localSubs.filter((s: any) => s.worker_email === userEmail);
     setPendingSubmissions(userSubs);
 
-    // Extract completed task IDs so they disappear from active tasks
     const doneIds = userSubs.map((s: any) => String(s.task_id));
     setCompletedIds(doneIds);
 
-    // Load live tasks and filter out completed ones
     async function loadTasks() {
       const allTasks = await fetchAllTasks();
       setTasks(allTasks);
@@ -32,7 +31,6 @@ export default function DashboardPage() {
     loadTasks();
   }, []);
 
-  // Calculate earnings
   const pendingBalance = pendingSubmissions
     .filter((s) => s.status === 'pending')
     .reduce((sum, s) => sum + Number(s.reward || 0), 0);
@@ -41,7 +39,6 @@ export default function DashboardPage() {
     .filter((s) => s.status === 'approved')
     .reduce((sum, s) => sum + Number(s.reward || 0), 0);
 
-  // Available active tasks excluding completed ones
   const availableTasks = tasks.filter((t) => !completedIds.includes(String(t.id)));
   const completedCount = completedIds.length;
 
@@ -53,14 +50,18 @@ export default function DashboardPage() {
         <div className="flex justify-between items-center bg-slate-900 p-5 rounded-3xl border border-slate-800 shadow-lg">
           <div>
             <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Worker Account</span>
-            <h1 className="text-sm font-black text-white">{email}</h1>
+            <h1 className="text-sm font-black text-white">{email || 'Worker'}</h1>
           </div>
-          <button 
-            onClick={() => router.push('/admin')} 
-            className="text-[10px] font-bold bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-xl border border-slate-700 text-slate-300"
-          >
-            Admin Panel
-          </button>
+          
+          {/* Admin Panel button shows ONLY for Admin */}
+          {email === ADMIN_EMAIL && (
+            <button 
+              onClick={() => router.push('/admin')} 
+              className="text-[10px] font-bold bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded-xl text-white shadow"
+            >
+              Admin Panel
+            </button>
+          )}
         </div>
 
         {/* Balance Cards */}
@@ -75,7 +76,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Pro Upgrade Requirement (Appears after 3 tasks completed) */}
+        {/* Pro Upgrade Requirement */}
         {completedCount >= 3 ? (
           <div className="bg-gradient-to-br from-amber-600/20 to-emerald-600/20 p-5 rounded-3xl border border-amber-500/30 text-center space-y-3">
             <span className="inline-block bg-amber-500/20 text-amber-400 text-[10px] font-black uppercase px-3 py-1 rounded-full border border-amber-500/30">
@@ -83,17 +84,16 @@ export default function DashboardPage() {
             </span>
             <h2 className="text-base font-black text-white">Upgrade Account to Pro</h2>
             <p className="text-xs text-slate-300 leading-relaxed max-w-md mx-auto">
-              You have successfully completed all 3 Starter tasks! To unlock high-tier Academic tasks and proceed with cashouts, please upgrade to <strong className="text-emerald-400">Pro Account at KSh 250</strong>.
+              You have completed all 3 Starter tasks! To unlock high-tier tasks and cash out, upgrade to <strong className="text-emerald-400">Pro Account at KSh 250</strong>.
             </p>
             <button 
-              onClick={() => alert('Send KSh 250 to M-Pesa Till/Paybill to activate Pro status.')}
+              onClick={() => alert('Send KSh 250 via M-Pesa to activate Pro status.')}
               className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3 rounded-xl transition shadow-lg"
             >
               Upgrade to Pro (KSh 250)
             </button>
           </div>
         ) : (
-          /* Available Tasks Section */
           <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">
@@ -136,7 +136,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Submissions Pending / Approved History */}
+        {/* Submissions Queue */}
         {pendingSubmissions.length > 0 && (
           <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-3">
             <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">
