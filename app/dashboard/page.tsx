@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { getStoredTasks, Task } from '@/lib/tasks';
+import { fetchAllTasks, Task } from '@/lib/tasks';
 
 export default function WorkerDashboard() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export default function WorkerDashboard() {
     }
 
     fetchWorkerData(userEmail);
-    setTasks(getStoredTasks());
+    loadTasks();
   }, []);
 
   const fetchWorkerData = async (userEmail: string) => {
@@ -34,6 +34,11 @@ export default function WorkerDashboard() {
     } else if (isAdmin) {
       setIsPro(true);
     }
+  };
+
+  const loadTasks = async () => {
+    const data = await fetchAllTasks();
+    setTasks(data);
   };
 
   const visibleTasks = isPro ? tasks : tasks.slice(0, 3);

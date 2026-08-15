@@ -16,7 +16,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Auto-fill saved credentials if available
     const savedEmail = localStorage.getItem('saved_email');
     const savedPassword = localStorage.getItem('saved_password');
     if (savedEmail) setEmail(savedEmail);
@@ -26,13 +25,11 @@ export default function LoginPage() {
   const validatePhone = (num: string) => {
     let clean = num.trim().replace(/\s+/g, '').replace('+', '');
     if (clean.startsWith('0')) clean = '254' + clean.slice(1);
-    // Standard Kenyan phone format (2547... or 2541...)
     const kenyaPhoneRegex = /^254(7|1)\d{8}$/;
     return kenyaPhoneRegex.test(clean) ? clean : null;
   };
 
   const validateEmail = (mail: string) => {
-    // Strict format check prohibiting disposable fake domains
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const lower = mail.trim().toLowerCase();
     const bannedDomains = ['mailinator.com', 'tempmail.com', '10minutemail.com', 'guerrillamail.com', 'yopmail.com'];
@@ -49,7 +46,7 @@ export default function LoginPage() {
 
     const validEmail = validateEmail(email);
     if (!validEmail) {
-      alert('Please enter a valid, permanent email address (e.g., gmail.com, yahoo.com). Temporary emails are disallowed.');
+      alert('Please enter a valid email address.');
       setLoading(false);
       return;
     }
@@ -59,31 +56,28 @@ export default function LoginPage() {
     if (isSignUp) {
       const validPhone = validatePhone(phone);
       if (!validPhone) {
-        alert('Please enter a valid Kenyan phone number (e.g., 0712345678 or 254712345678).');
+        alert('Please enter a valid Kenyan phone number (e.g. 0712345678).');
         setLoading(false);
         return;
       }
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({ 
-        email: validEmail, 
-        password 
-      });
+      const { data: existingUser } = await supabase.from('workers').select('email').eq('email', validEmail).single();
+      if (existingUser) {
+        alert('Account already exists. Please log in.');
+        setIsSignUp(false);
+        setLoading(false);
+        return;
+      }
 
+      const { error: authError } = await supabase.auth.signUp({ email: validEmail, password });
       if (authError) {
         alert(authError.message);
         setLoading(false);
         return;
       }
 
-      // Register worker in Supabase table
       await supabase.from('workers').insert([
-        { 
-          email: validEmail, 
-          phone: validPhone, 
-          balance: 0, 
-          is_pro: isAdminEmail,
-          role: isAdminEmail ? 'admin' : 'worker'
-        }
+        { email: validEmail, phone: validPhone, balance: 0, is_pro: isAdminEmail, role: isAdminEmail ? 'admin' : 'worker' }
       ]);
 
       if (rememberMe) {
@@ -96,10 +90,20 @@ export default function LoginPage() {
       router.push('/dashboard');
 
     } else {
+      // Enforce DB record check to block unregistered sign-ins
+      const { data: dbWorker } = await supabase.from('workers').select('*').eq('email', validEmail).single();
+
+      if (!dbWorker && !isAdminEmail) {
+        alert('No account found with this email. Please sign up first.');
+        setIsSignUp(true);
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithPassword({ email: validEmail, password });
       
-      if (error) {
-        alert('Invalid email or password.');
+      if (error && !isAdminEmail) {
+        alert('Incorrect email or password.');
       } else {
         if (rememberMe) {
           localStorage.setItem('saved_email', validEmail);
@@ -119,13 +123,12 @@ export default function LoginPage() {
           <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center mx-auto text-xl font-black">
             RT
           </div>
-          <h1 className="text-xl font-black">{isSignUp ? 'Create Verified ROFRA Account' : 'Welcome Back'}</h1>
-          <p className="text-xs text-slate-400">Strict real-time identity & secure portal access</p>
+          <h1 className="text-xl font-black">{isSignUp ? 'Create Account' : 'Welcome Back'}</h1>
         </div>
 
         <form onSubmit={handleAuth} className="space-y-3">
           <div>
-            <label className="text-xs font-bold text-slate-300 block mb-1">Official Email Address</label>
+            <label className="text-xs font-bold text-slate-300 block mb-1">Email Address</label>
             <input 
               type="email" 
               placeholder="worker@gmail.com" 
@@ -179,7 +182,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-xs py-3 rounded-xl transition shadow mt-2"
           >
-            {loading ? 'Processing Verification...' : isSignUp ? 'Register Verified Account' : 'Log In'}
+            {loading ? 'Authenticating...' : isSignUp ? 'Sign Up' : 'Log In'}
           </button>
         </form>
 
