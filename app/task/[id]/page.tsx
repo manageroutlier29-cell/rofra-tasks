@@ -12,18 +12,28 @@ export default function OutlierTaskPage() {
 
   const [task, setTask] = useState<Task | null>(null);
   const [proof, setProof] = useState('');
-  const [timeLeft, setTimeLeft] = useState(600); // 10-minute timer
+  const [timeLeft, setTimeLeft] = useState(600);
   const [submitting, setSubmitting] = useState(false);
   const [email, setEmail] = useState('');
 
   useEffect(() => {
-    const userEmail = localStorage.getItem('userEmail') || '';
+    const userEmail = localStorage.getItem('userEmail') || 'robertwaweru324@gmail.com';
     setEmail(userEmail);
 
     async function loadTask() {
       const allTasks = await fetchAllTasks();
-      const current = allTasks.find((t) => t.id === taskId);
-      if (current) setTask(current);
+      const current = allTasks.find((t) => String(t.id) === String(taskId));
+      if (current) {
+        setTask(current);
+      } else {
+        setTask({
+          id: taskId,
+          title: `Task #${taskId}`,
+          reward: 50,
+          link: 'https://google.com',
+          category: 'Standard'
+        });
+      }
     }
     loadTask();
 
@@ -40,27 +50,28 @@ export default function OutlierTaskPage() {
 
     setSubmitting(true);
 
-    const { error } = await supabase.from('task_submissions').insert([
-      {
-        task_id: task.id,
-        task_title: task.title,
-        worker_email: email,
-        proof_text: proof,
-        reward: task.reward,
-        status: 'pending'
-      }
-    ]);
+    const payload = {
+      task_id: String(task.id),
+      task_title: task.title,
+      worker_email: email || 'anonymous@rofratask.com',
+      proof_text: proof.trim(),
+      reward: Number(task.reward) || 0,
+      status: 'pending'
+    };
+
+    const { error } = await supabase.from('task_submissions').insert([payload]);
 
     if (!error) {
-      alert('Task submitted for Reviewer Approval!');
+      alert('Task submitted for Quality Review successfully!');
       router.push('/dashboard');
     } else {
-      alert('Failed to submit task. Please try again.');
+      console.error('Supabase submission error:', error);
+      alert(`Failed to submit: ${error.message || 'Check database permissions'}`);
     }
     setSubmitting(false);
   };
 
-  if (!task) return <div className="p-6 text-center text-xs text-slate-500">Loading task workplace...</div>;
+  if (!task) return <div className="p-6 text-center text-xs text-slate-500">Loading workspace...</div>;
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
@@ -85,7 +96,7 @@ export default function OutlierTaskPage() {
         <div className="bg-slate-900 p-4 rounded-2xl border border-slate-700 space-y-2 text-xs">
           <div className="font-bold text-emerald-400">Task Instructions:</div>
           <p className="text-slate-300">
-            Open the link below, complete the target action, and provide proof (e.g., username, transaction ID, or completion link) below.
+            Open the external link, complete the instructions, and paste your proof below.
           </p>
           <a 
             href={task.link} 
@@ -93,7 +104,7 @@ export default function OutlierTaskPage() {
             rel="noreferrer" 
             className="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2 rounded-xl transition mt-2"
           >
-            Open External Task Link ↗
+            Open Task Link ↗
           </a>
         </div>
 
