@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -28,14 +30,18 @@ export default function AdminBackendPage() {
   }, []);
 
   const fetchAdminData = async () => {
-    const { data: workerData } = await supabase.from('workers').select('*');
-    if (workerData) setWorkers(workerData);
+    try {
+      const { data: workerData } = await supabase.from('workers').select('*');
+      if (workerData) setWorkers(workerData);
 
-    const { data: subData } = await supabase.from('task_submissions').select('*').order('created_at', { ascending: false });
-    if (subData) setSubmissions(subData);
+      const { data: subData } = await supabase.from('task_submissions').select('*').order('created_at', { ascending: false });
+      if (subData) setSubmissions(subData);
 
-    const { data: payoutData } = await supabase.from('payouts').select('*').order('created_at', { ascending: false });
-    if (payoutData) setPayouts(payoutData);
+      const { data: payoutData } = await supabase.from('payouts').select('*').order('created_at', { ascending: false });
+      if (payoutData) setPayouts(payoutData);
+    } catch (e) {
+      console.warn('Admin fetch fallback');
+    }
   };
 
   const loadTasks = async () => {
@@ -44,10 +50,8 @@ export default function AdminBackendPage() {
   };
 
   const handleApproveSubmission = async (sub: any) => {
-    // 1. Mark submission approved
     await supabase.from('task_submissions').update({ status: 'approved' }).eq('id', sub.id);
 
-    // 2. Fetch worker current balance and add reward
     const { data: worker } = await supabase.from('workers').select('balance').eq('email', sub.worker_email).single();
     const currentBal = worker?.balance || 0;
     const newBal = currentBal + parseFloat(sub.reward);
