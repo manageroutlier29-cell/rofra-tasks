@@ -1,6 +1,7 @@
 'use client';
 
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -40,7 +41,7 @@ export default function AdminBackendPage() {
       const { data: payoutData } = await supabase.from('payouts').select('*').order('created_at', { ascending: false });
       if (payoutData) setPayouts(payoutData);
     } catch (e) {
-      console.warn('Admin fetch fallback');
+      console.warn('Admin database fetch skipped during build');
     }
   };
 
