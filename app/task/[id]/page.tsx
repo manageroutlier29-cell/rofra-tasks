@@ -5,13 +5,13 @@ import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { fetchAllTasks, Task } from '@/lib/tasks';
 
-export default function OutlierTaskPage() {
+export default function SubjectTaskPage() {
   const router = useRouter();
   const params = useParams();
   const taskId = params.id as string;
 
   const [task, setTask] = useState<Task | null>(null);
-  const [proof, setProof] = useState('');
+  const [answer, setAnswer] = useState('');
   const [timeLeft, setTimeLeft] = useState(600);
   const [submitting, setSubmitting] = useState(false);
   const [email, setEmail] = useState('');
@@ -21,28 +21,10 @@ export default function OutlierTaskPage() {
     setEmail(userEmail);
 
     async function loadTask() {
-      try {
-        const allTasks = await fetchAllTasks();
-        const current = allTasks.find((t) => String(t.id) === String(taskId));
-        if (current) {
-          setTask(current);
-        } else {
-          setTask({
-            id: taskId,
-            title: `Task #${taskId}`,
-            reward: 50,
-            link: 'https://google.com',
-            category: 'Standard'
-          });
-        }
-      } catch (err) {
-        setTask({
-          id: taskId,
-          title: `Task #${taskId}`,
-          reward: 50,
-          link: 'https://google.com',
-          category: 'Standard'
-        });
+      const allTasks = await fetchAllTasks();
+      const current = allTasks.find((t) => String(t.id) === String(taskId));
+      if (current) {
+        setTask(current);
       }
     }
     loadTask();
@@ -56,7 +38,7 @@ export default function OutlierTaskPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!proof.trim() || !task) return;
+    if (!answer.trim() || !task) return;
 
     setSubmitting(true);
 
@@ -64,8 +46,9 @@ export default function OutlierTaskPage() {
       id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
       task_id: String(task.id),
       task_title: task.title,
-      worker_email: email || 'anonymous@rofratask.com',
-      proof_text: proof.trim(),
+      category: task.category,
+      worker_email: email,
+      proof_text: answer.trim(),
       reward: Number(task.reward) || 0,
       status: 'pending',
       created_at: new Date().toISOString()
@@ -73,27 +56,19 @@ export default function OutlierTaskPage() {
 
     try {
       const { error } = await supabase.from('task_submissions').insert([payload]);
-
       if (error) throw error;
-
-      alert('Task submitted for Quality Review successfully!');
-      router.push('/dashboard');
-    } catch (err: any) {
-      console.warn('Network issue submitting to remote DB, saving backup locally:', err);
-      
-      // Local storage fallback for offline network resilience
+    } catch (err) {
       const existing = JSON.parse(localStorage.getItem('rofra_pending_submissions') || '[]');
       existing.push(payload);
       localStorage.setItem('rofra_pending_submissions', JSON.stringify(existing));
-
-      alert('Submission saved and queued for Quality Review!');
-      router.push('/dashboard');
     } finally {
       setSubmitting(false);
+      alert('Answer submitted for Review!');
+      router.push('/dashboard');
     }
   };
 
-  if (!task) return <div className="p-6 text-center text-xs text-slate-500">Loading workspace...</div>;
+  if (!task) return <div className="p-6 text-center text-xs text-slate-500">Loading task #{taskId}...</div>;
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
@@ -104,40 +79,30 @@ export default function OutlierTaskPage() {
         
         <div className="flex justify-between items-center border-b border-slate-700 pb-4">
           <div>
-            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Active Task Workspace</span>
+            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">{task.category} Task #{task.id}</span>
             <h1 className="text-lg font-black text-white">{task.title}</h1>
           </div>
           <div className="text-right">
-            <span className="text-[10px] font-bold text-slate-400 block">Time Remaining</span>
+            <span className="text-[10px] font-bold text-slate-400 block">Time Left</span>
             <span className={`text-sm font-black font-mono ${timeLeft < 120 ? 'text-red-400' : 'text-amber-400'}`}>
               {minutes}:{seconds < 10 ? `0${seconds}` : seconds}
             </span>
           </div>
         </div>
 
-        <div className="bg-slate-900 p-4 rounded-2xl border border-slate-700 space-y-2 text-xs">
-          <div className="font-bold text-emerald-400">Task Instructions:</div>
-          <p className="text-slate-300">
-            Open the external link, complete the instructions, and paste your proof below.
-          </p>
-          <a 
-            href={task.link} 
-            target="_blank" 
-            rel="noreferrer" 
-            className="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2 rounded-xl transition mt-2"
-          >
-            Open Task Link ↗
-          </a>
+        <div className="bg-slate-900 p-4 rounded-2xl border border-slate-700 space-y-2">
+          <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Question:</div>
+          <p className="text-sm font-medium text-slate-200">{task.question}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-xs font-bold text-slate-300 block mb-1">Work Verification / Proof</label>
+            <label className="text-xs font-bold text-slate-300 block mb-1">Your Answer / Solution</label>
             <textarea 
-              rows={4}
-              placeholder="Enter screenshot link, username, or text proof here..."
-              value={proof}
-              onChange={(e) => setProof(e.target.value)}
+              rows={5}
+              placeholder="Type your complete answer or workings here..."
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white outline-none focus:border-emerald-500"
               required
             />
@@ -148,7 +113,7 @@ export default function OutlierTaskPage() {
             disabled={submitting || timeLeft === 0}
             className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs py-3.5 rounded-xl transition shadow"
           >
-            {submitting ? 'Submitting to Review Queue...' : 'Submit Task for Quality Review'}
+            {submitting ? 'Submitting Solution...' : 'Submit Solution for Review'}
           </button>
         </form>
 

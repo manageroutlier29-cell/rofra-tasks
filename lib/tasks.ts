@@ -1,29 +1,40 @@
-import { supabase } from '@/lib/supabase';
-
 export interface Task {
   id: string;
   title: string;
   reward: number;
-  link: string;
-  category?: string;
+  category: 'Mathematics' | 'Physics' | 'Chemistry' | 'Economics';
+  question: string;
 }
 
 export async function fetchAllTasks(): Promise<Task[]> {
-  try {
-    const { data, error } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
-    if (error || !data || data.length === 0) {
-      return getFallbackTasks();
-    }
-    return data;
-  } catch (err) {
-    return getFallbackTasks();
-  }
-}
-
-function getFallbackTasks(): Task[] {
   return [
-    { id: '1', title: 'Watch YouTube Video & Like', reward: 50, link: 'https://youtube.com', category: 'Standard' },
-    { id: '2', title: 'Follow Instagram Account', reward: 40, link: 'https://instagram.com', category: 'Standard' },
-    { id: '3', title: 'Complete Online Survey', reward: 60, link: 'https://google.com', category: 'Standard' }
+    {
+      id: '1',
+      title: 'Mathematics: Quadratic Equation',
+      reward: 50,
+      category: 'Mathematics',
+      question: 'Solve for x: x² - 5x + 6 = 0. Show all steps or state the final values of x.'
+    },
+    {
+      id: '2',
+      title: 'Physics: Newton\'s Second Law',
+      reward: 60,
+      category: 'Physics',
+      question: 'A force of 20N is applied to a mass of 4kg. Calculate the acceleration of the object.'
+    },
+    {
+      id: '3',
+      title: 'Chemistry: Stoichiometry',
+      reward: 55,
+      category: 'Chemistry',
+      question: 'What is the molar mass of Water (H₂O)? Given: H = 1 g/mol, O = 16 g/mol.'
+    },
+    {
+      id: '4',
+      title: 'Economics: Supply and Demand',
+      reward: 65,
+      category: 'Economics',
+      question: 'Briefly explain what happens to the equilibrium price when supply decreases while demand remains constant.'
+    }
   ];
 }
