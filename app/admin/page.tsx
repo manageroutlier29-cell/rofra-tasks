@@ -21,26 +21,26 @@ export default function AdminPortal() {
 
   const [activeTab, setActiveTab] = useState<NavigationTab>('dashboard');
 
-  // Seed Data / State Management
+  // Core Data States
   const [workers, setWorkers] = useState([
     { id: 'usr_1', name: 'David Omondi', email: 'david@example.com', role: 'WORKER', status: 'PENDING_APPROVAL', score: 88, rating: '4.8 ★' },
     { id: 'usr_2', name: 'Faith Wanjiku', email: 'faith@example.com', role: 'WORKER', status: 'APPROVED', score: 95, rating: '4.9 ★' },
-    { id: 'usr_3', name: 'Kevin Kiprop', email: 'kevin@example.com', role: 'WORKER', status: 'REJECTED', score: 45, rating: '3.2 ★' },
   ]);
 
   const [clients, setClients] = useState([
     { id: 'cli_1', name: 'Astra AI Labs', email: 'contact@astra.ai', projectsCount: 3, totalSpent: 'KSh 140,000' },
-    { id: 'cli_2', name: 'Nairobi Data Systems', email: 'ops@nds.co.ke', projectsCount: 1, totalSpent: 'KSh 45,000' },
   ]);
 
   const [projects, setProjects] = useState([
     { id: 'prj_1', title: 'RLHF Swahili Text Annotation', client: 'Astra AI Labs', budget: 'KSh 80,000', tasksCount: 120, status: 'Active' },
-    { id: 'prj_2', title: 'Python Code Quality Verification', client: 'Nairobi Data Systems', budget: 'KSh 45,000', tasksCount: 50, status: 'Active' },
   ]);
 
   const [tasks, setTasks] = useState([
-    { id: 'tsk_101', project: 'RLHF Swahili Text Annotation', worker: 'Faith Wanjiku', reward: 'KSh 150', status: 'IN_REVIEW' },
-    { id: 'tsk_102', project: 'Python Code Quality Verification', worker: 'David Omondi', reward: 'KSh 200', status: 'COMPLETED' },
+    { id: 'tsk_101', project: 'RLHF Swahili Text Annotation', title: 'Swahili Sentiment Verification', worker: 'Faith Wanjiku', reward: 'KSh 150', status: 'IN_REVIEW' },
+  ]);
+
+  const [assessments, setAssessments] = useState([
+    { id: 'asm_1', title: 'Swahili Grammar & Tone Assessment', category: 'Linguistics', passingScore: 80, totalQuestions: 10 },
   ]);
 
   const [disputes, setDisputes] = useState([
@@ -49,10 +49,22 @@ export default function AdminPortal() {
 
   const [payments, setPayments] = useState([
     { id: 'pay_1', worker: 'Faith Wanjiku', amount: 'KSh 3,400', method: 'M-Pesa (0712***890)', status: 'Pending Approval' },
-    { id: 'pay_2', worker: 'Kevin Kiprop', amount: 'KSh 800', method: 'M-Pesa (0798***123)', status: 'Disbursed' },
   ]);
 
-  // Admin Authentication Handler
+  // Modals & Form States
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'WORKER' });
+
+  const [showAddProject, setShowAddProject] = useState(false);
+  const [newProject, setNewProject] = useState({ title: '', client: '', budget: '', tasksCount: 0 });
+
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [newTask, setNewTask] = useState({ title: '', project: '', worker: '', reward: '' });
+
+  const [showAddAssessment, setShowAddAssessment] = useState(false);
+  const [newAssessment, setNewAssessment] = useState({ title: '', category: '', passingScore: 80, totalQuestions: 10 });
+
+  // Handlers
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (loginEmail.trim() === 'Admin@rofra.com' && loginPassword === '39855495WRMu') {
@@ -63,21 +75,64 @@ export default function AdminPortal() {
     }
   };
 
-  // Actions
-  const handleApproveWorker = (id: string) => {
-    setWorkers(workers.map(w => w.id === id ? { ...w, status: 'APPROVED' } : w));
+  const handleCreateUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    const created = {
+      id: `usr_${Date.now()}`,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      status: 'APPROVED',
+      score: 100,
+      rating: '5.0 ★',
+    };
+    setWorkers([...workers, created]);
+    setShowAddUser(false);
+    setNewUser({ name: '', email: '', password: '', role: 'WORKER' });
   };
 
-  const handleRejectWorker = (id: string) => {
-    setWorkers(workers.map(w => w.id === id ? { ...w, status: 'REJECTED' } : w));
+  const handleCreateProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    const created = {
+      id: `prj_${Date.now()}`,
+      title: newProject.title,
+      client: newProject.client || 'Internal Project',
+      budget: `KSh ${newProject.budget}`,
+      tasksCount: Number(newProject.tasksCount),
+      status: 'Active',
+    };
+    setProjects([...projects, created]);
+    setShowAddProject(false);
+    setNewProject({ title: '', client: '', budget: '', tasksCount: 0 });
   };
 
-  const handleResolveDispute = (id: string) => {
-    setDisputes(disputes.map(d => d.id === id ? { ...d, status: 'RESOLVED' } : d));
+  const handleCreateTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    const created = {
+      id: `tsk_${Date.now()}`,
+      title: newTask.title,
+      project: newTask.project || 'General Tasks',
+      worker: newTask.worker || 'Unassigned',
+      reward: `KSh ${newTask.reward}`,
+      status: 'AVAILABLE',
+    };
+    setTasks([...tasks, created]);
+    setShowAddTask(false);
+    setNewTask({ title: '', project: '', worker: '', reward: '' });
   };
 
-  const handleApprovePayment = (id: string) => {
-    setPayments(payments.map(p => p.id === id ? { ...p, status: 'Disbursed' } : p));
+  const handleCreateAssessment = (e: React.FormEvent) => {
+    e.preventDefault();
+    const created = {
+      id: `asm_${Date.now()}`,
+      title: newAssessment.title,
+      category: newAssessment.category,
+      passingScore: Number(newAssessment.passingScore),
+      totalQuestions: Number(newAssessment.totalQuestions),
+    };
+    setAssessments([...assessments, created]);
+    setShowAddAssessment(false);
+    setNewAssessment({ title: '', category: '', passingScore: 80, totalQuestions: 10 });
   };
 
   if (!isAuthenticated) {
@@ -142,8 +197,8 @@ export default function AdminPortal() {
               R
             </div>
             <div>
-              <h2 className="text-sm font-black text-white">ROFRA Task Engine</h2>
-              <p className="text-[10px] text-slate-400 font-mono">Admin: Admin@rofra.com</p>
+              <h2 className="text-sm font-black text-white">ROFRA Control</h2>
+              <p className="text-[10px] text-slate-400 font-mono">Admin@rofra.com</p>
             </div>
           </div>
 
@@ -169,11 +224,6 @@ export default function AdminPortal() {
                 }`}
               >
                 <span>{tab.label}</span>
-                {tab.id === 'users' && workers.filter(w => w.status === 'PENDING_APPROVAL').length > 0 && (
-                  <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded-full font-mono">
-                    {workers.filter(w => w.status === 'PENDING_APPROVAL').length}
-                  </span>
-                )}
               </button>
             ))}
           </nav>
@@ -194,192 +244,196 @@ export default function AdminPortal() {
         <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 flex justify-between items-center flex-wrap gap-4">
           <div>
             <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">System Administration</span>
-            <h1 className="text-xl font-black text-white capitalize">{activeTab.replace('_', ' ')} Module</h1>
+            <h1 className="text-xl font-black text-white capitalize">{activeTab} Module</h1>
           </div>
           <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            System Operational
+            System Active
           </span>
         </div>
 
-        {/* Dynamic Views */}
+        {/* Dashboard View */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800">
-                <span className="text-xs font-bold text-slate-400 uppercase">Active Workers</span>
-                <div className="text-2xl font-black text-white font-mono mt-1">{workers.length}</div>
-              </div>
-              <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800">
-                <span className="text-xs font-bold text-slate-400 uppercase">Pending Audits</span>
-                <div className="text-2xl font-black text-amber-400 font-mono mt-1">
-                  {workers.filter(w => w.status === 'PENDING_APPROVAL').length}
-                </div>
-              </div>
-              <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800">
-                <span className="text-xs font-bold text-slate-400 uppercase">Active Projects</span>
-                <div className="text-2xl font-black text-emerald-400 font-mono mt-1">{projects.length}</div>
-              </div>
-              <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800">
-                <span className="text-xs font-bold text-slate-400 uppercase">Pending Payments</span>
-                <div className="text-2xl font-black text-sky-400 font-mono mt-1">
-                  {payments.filter(p => p.status === 'Pending Approval').length}
-                </div>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800">
+              <span className="text-xs font-bold text-slate-400 uppercase">Total Users</span>
+              <div className="text-2xl font-black text-white font-mono mt-1">{workers.length}</div>
+            </div>
+            <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800">
+              <span className="text-xs font-bold text-slate-400 uppercase">Active Projects</span>
+              <div className="text-2xl font-black text-emerald-400 font-mono mt-1">{projects.length}</div>
+            </div>
+            <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800">
+              <span className="text-xs font-bold text-slate-400 uppercase">Total Tasks</span>
+              <div className="text-2xl font-black text-sky-400 font-mono mt-1">{tasks.length}</div>
+            </div>
+            <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800">
+              <span className="text-xs font-bold text-slate-400 uppercase">Assessments</span>
+              <div className="text-2xl font-black text-amber-400 font-mono mt-1">{assessments.length}</div>
             </div>
           </div>
         )}
 
+        {/* Users View */}
         {activeTab === 'users' && (
           <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
-            <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">Manage Workers & Approvals</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">User Directory</h2>
+              <button 
+                onClick={() => setShowAddUser(!showAddUser)}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition"
+              >
+                + Add New User
+              </button>
+            </div>
+
+            {showAddUser && (
+              <form onSubmit={handleCreateUser} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <h3 className="text-xs font-bold text-emerald-400">Create New User Account</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input type="text" placeholder="Full Name" value={newUser.name} onChange={(e) => setNewUser({...newUser, name: e.target.value})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" required />
+                  <input type="email" placeholder="Email Address" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" required />
+                  <input type="password" placeholder="Account Password" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" required />
+                  <select value={newUser.role} onChange={(e) => setNewUser({...newUser, role: e.target.value})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white">
+                    <option value="WORKER">Worker</option>
+                    <option value="CLIENT">Client</option>
+                    <option value="ADMIN">Admin</option>
+                  </select>
+                </div>
+                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs">Save User</button>
+              </form>
+            )}
+
             <div className="space-y-3">
-              {workers.map((worker) => (
-                <div key={worker.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center flex-wrap gap-4">
+              {workers.map((usr) => (
+                <div key={usr.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
                   <div>
-                    <h3 className="text-xs font-bold text-white">{worker.name}</h3>
-                    <p className="text-[10px] font-mono text-slate-400">{worker.email} • Quiz Score: {worker.score}% • Rating: {worker.rating}</p>
+                    <h3 className="text-xs font-bold text-white">{usr.name} <span className="text-[10px] text-emerald-400 font-mono">({usr.role})</span></h3>
+                    <p className="text-[10px] font-mono text-slate-400">{usr.email}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {worker.status === 'PENDING_APPROVAL' ? (
-                      <>
-                        <button onClick={() => handleRejectWorker(worker.id)} className="px-3 py-1.5 bg-rose-950/60 text-rose-300 rounded-xl text-xs font-bold border border-rose-800/50">Reject</button>
-                        <button onClick={() => handleApproveWorker(worker.id)} className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold">Approve</button>
-                      </>
-                    ) : (
-                      <span className={`text-xs font-bold px-3 py-1 rounded-xl border ${
-                        worker.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                      }`}>
-                        {worker.status}
-                      </span>
-                    )}
-                  </div>
+                  <span className="text-xs font-bold px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{usr.status}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {activeTab === 'clients' && (
-          <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
-            <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">Manage Clients</h2>
-            <div className="space-y-3">
-              {clients.map((client) => (
-                <div key={client.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
-                  <div>
-                    <h3 className="text-xs font-bold text-white">{client.name}</h3>
-                    <p className="text-[10px] font-mono text-slate-400">{client.email}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-bold text-emerald-400 font-mono">{client.totalSpent}</span>
-                    <p className="text-[10px] text-slate-400">{client.projectsCount} Active Projects</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
+        {/* Projects View */}
         {activeTab === 'projects' && (
           <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
-            <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">Create & Manage Projects</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">Projects List</h2>
+              <button 
+                onClick={() => setShowAddProject(!showAddProject)}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition"
+              >
+                + Add New Project
+              </button>
+            </div>
+
+            {showAddProject && (
+              <form onSubmit={handleCreateProject} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <h3 className="text-xs font-bold text-emerald-400">Create Project</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input type="text" placeholder="Project Title" value={newProject.title} onChange={(e) => setNewProject({...newProject, title: e.target.value})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" required />
+                  <input type="text" placeholder="Client Name" value={newProject.client} onChange={(e) => setNewProject({...newProject, client: e.target.value})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" />
+                  <input type="text" placeholder="Budget Amount (KSh)" value={newProject.budget} onChange={(e) => setNewProject({...newProject, budget: e.target.value})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" required />
+                  <input type="number" placeholder="Total Tasks Count" value={newProject.tasksCount} onChange={(e) => setNewProject({...newProject, tasksCount: Number(e.target.value)})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" required />
+                </div>
+                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs">Save Project</button>
+              </form>
+            )}
+
             <div className="space-y-3">
-              {projects.map((project) => (
-                <div key={project.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
+              {projects.map((prj) => (
+                <div key={prj.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
                   <div>
-                    <h3 className="text-xs font-bold text-white">{project.title}</h3>
-                    <p className="text-[10px] font-mono text-slate-400">Client: {project.client} • Budget: {project.budget}</p>
+                    <h3 className="text-xs font-bold text-white">{prj.title}</h3>
+                    <p className="text-[10px] font-mono text-slate-400">Client: {prj.client} • Budget: {prj.budget}</p>
                   </div>
-                  <span className="text-xs font-bold px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    {project.status}
-                  </span>
+                  <span className="text-xs font-bold px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{prj.status}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
+        {/* Tasks View */}
         {activeTab === 'tasks' && (
           <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
-            <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">Task Monitor</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">Tasks Management</h2>
+              <button 
+                onClick={() => setShowAddTask(!showAddTask)}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition"
+              >
+                + Add New Task
+              </button>
+            </div>
+
+            {showAddTask && (
+              <form onSubmit={handleCreateTask} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <h3 className="text-xs font-bold text-emerald-400">Create Task</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input type="text" placeholder="Task Title" value={newTask.title} onChange={(e) => setNewTask({...newTask, title: e.target.value})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" required />
+                  <input type="text" placeholder="Project Title" value={newTask.project} onChange={(e) => setNewTask({...newTask, project: e.target.value})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" />
+                  <input type="text" placeholder="Assigned Worker Email" value={newTask.worker} onChange={(e) => setNewTask({...newTask, worker: e.target.value})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" />
+                  <input type="text" placeholder="Reward (KSh)" value={newTask.reward} onChange={(e) => setNewTask({...newTask, reward: e.target.value})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" required />
+                </div>
+                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs">Save Task</button>
+              </form>
+            )}
+
             <div className="space-y-3">
-              {tasks.map((task) => (
-                <div key={task.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
+              {tasks.map((tsk) => (
+                <div key={tsk.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
                   <div>
-                    <h3 className="text-xs font-bold text-white">{task.project}</h3>
-                    <p className="text-[10px] font-mono text-slate-400">Assigned: {task.worker} • Reward: {task.reward}</p>
+                    <h3 className="text-xs font-bold text-white">{tsk.title}</h3>
+                    <p className="text-[10px] font-mono text-slate-400">Project: {tsk.project} • Reward: {tsk.reward}</p>
                   </div>
-                  <span className="text-xs font-bold px-3 py-1 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    {task.status}
-                  </span>
+                  <span className="text-xs font-bold px-3 py-1 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">{tsk.status}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
+        {/* Assessment View */}
         {activeTab === 'assessment' && (
           <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
-            <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">Worker Assessments & Scoring</h2>
-            <p className="text-xs text-slate-400">Configure quiz thresholds, evaluation tasks, and automated grading rules.</p>
-          </div>
-        )}
-
-        {activeTab === 'quality' && (
-          <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
-            <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">Quality Audits & Dispute Resolution</h2>
-            <div className="space-y-3">
-              {disputes.map((dispute) => (
-                <div key={dispute.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xs font-bold text-rose-400">Dispute: {dispute.worker}</h3>
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                      {dispute.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300">{dispute.reason}</p>
-                  {dispute.status === 'OPEN' && (
-                    <button onClick={() => handleResolveDispute(dispute.id)} className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold">
-                      Resolve Dispute & Refund
-                    </button>
-                  )}
-                </div>
-              ))}
+            <div className="flex justify-between items-center">
+              <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">Assessments & Exams</h2>
+              <button 
+                onClick={() => setShowAddAssessment(!showAddAssessment)}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition"
+              >
+                + Add New Assessment
+              </button>
             </div>
-          </div>
-        )}
 
-        {activeTab === 'payments' && (
-          <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
-            <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">Payment Disbursal Management</h2>
+            {showAddAssessment && (
+              <form onSubmit={handleCreateAssessment} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <h3 className="text-xs font-bold text-emerald-400">Create Skill Assessment</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input type="text" placeholder="Assessment Title" value={newAssessment.title} onChange={(e) => setNewAssessment({...newAssessment, title: e.target.value})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" required />
+                  <input type="text" placeholder="Category (e.g. STEM, Swahili)" value={newAssessment.category} onChange={(e) => setNewAssessment({...newAssessment, category: e.target.value})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" required />
+                  <input type="number" placeholder="Passing Score (%)" value={newAssessment.passingScore} onChange={(e) => setNewAssessment({...newAssessment, passingScore: Number(e.target.value)})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" required />
+                  <input type="number" placeholder="Total Questions" value={newAssessment.totalQuestions} onChange={(e) => setNewAssessment({...newAssessment, totalQuestions: Number(e.target.value)})} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white" required />
+                </div>
+                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs">Save Assessment</button>
+              </form>
+            )}
+
             <div className="space-y-3">
-              {payments.map((payment) => (
-                <div key={payment.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
+              {assessments.map((asm) => (
+                <div key={asm.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
                   <div>
-                    <h3 className="text-xs font-bold text-white">{payment.worker}</h3>
-                    <p className="text-[10px] font-mono text-slate-400">{payment.method}</p>
+                    <h3 className="text-xs font-bold text-white">{asm.title}</h3>
+                    <p className="text-[10px] font-mono text-slate-400">Category: {asm.category} • Passing Grade: {asm.passingScore}%</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-emerald-400 font-mono">{payment.amount}</span>
-                    {payment.status === 'Pending Approval' ? (
-                      <button onClick={() => handleApprovePayment(payment.id)} className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold">
-                        Approve Payout
-                      </button>
-                    ) : (
-                      <span className="text-xs font-bold px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        Disbursed
-                      </span>
-                    )}
-                  </div>
+                  <span className="text-xs font-bold px-3 py-1 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">{asm.totalQuestions} Questions</span>
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {activeTab === 'settings' && (
-          <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
-            <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">System Settings</h2>
-            <p className="text-xs text-slate-400">Manage credentials, API configurations, and admin access keys.</p>
           </div>
         )}
 
