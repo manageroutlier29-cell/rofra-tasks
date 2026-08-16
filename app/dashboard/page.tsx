@@ -1,10 +1,40 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+interface WorkerStats {
+  workerStatus: string;
+  activeTasksCount: number;
+  lifetimeEarnings: number;
+  qualityRating: string;
+  submissions: Array<{
+    id: string;
+    title: string;
+    rewardAmount: number;
+    status: string;
+  }>;
+}
 
 export default function WorkerDashboardPage() {
-  const [workerStatus] = useState<'ONBOARDING' | 'PENDING_ASSESSMENT' | 'PENDING_APPROVAL' | 'APPROVED'>('APPROVED');
+  const [stats, setStats] = useState<WorkerStats>({
+    workerStatus: 'PENDING_ASSESSMENT',
+    activeTasksCount: 0,
+    lifetimeEarnings: 0,
+    qualityRating: '100%',
+    submissions: [],
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/worker/stats')
+      .then((res) => res.json())
+      .then((data) => {
+        setStats(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -17,8 +47,12 @@ export default function WorkerDashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-400">Account Status:</span>
-          <span className="text-xs font-bold px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            {workerStatus}
+          <span className={`text-xs font-bold px-3 py-1 rounded-xl border ${
+            stats.workerStatus === 'APPROVED' 
+              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+          }`}>
+            {loading ? 'LOADING...' : stats.workerStatus}
           </span>
         </div>
       </div>
@@ -50,15 +84,17 @@ export default function WorkerDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase">Active Tasks</span>
-          <div className="text-2xl font-black text-white font-mono">2</div>
+          <div className="text-2xl font-black text-white font-mono">{stats.activeTasksCount}</div>
         </div>
         <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase">Lifetime Earnings</span>
-          <div className="text-2xl font-black text-emerald-400 font-mono">KSh 1,200</div>
+          <div className="text-2xl font-black text-emerald-400 font-mono">
+            KSh {stats.lifetimeEarnings.toLocaleString()}
+          </div>
         </div>
         <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase">Quality Rating</span>
-          <div className="text-2xl font-black text-amber-400 font-mono">98% ★</div>
+          <div className="text-2xl font-black text-amber-400 font-mono">{stats.qualityRating}</div>
         </div>
       </div>
 
@@ -69,27 +105,29 @@ export default function WorkerDashboardPage() {
           <Link href="/tasks" className="text-xs font-bold text-emerald-400 hover:underline">Go to Tasks →</Link>
         </div>
 
-        <div className="space-y-3">
-          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
-            <div>
-              <h3 className="text-xs font-bold text-white">RLHF Chatbot Prompt Evaluation</h3>
-              <p className="text-[10px] text-slate-400 font-mono mt-0.5">Project: Python Code Verification • Reward: KSh 150</p>
-            </div>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              Approved
-            </span>
+        {stats.submissions.length === 0 ? (
+          <div className="text-center py-6 text-slate-500 text-xs font-mono bg-slate-950 rounded-2xl border border-slate-800">
+            No active task submissions found. Complete an assessment to get assigned.
           </div>
-
-          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
-            <div>
-              <h3 className="text-xs font-bold text-white">STEM Physics Reasoning Audit</h3>
-              <p className="text-[10px] text-slate-400 font-mono mt-0.5">Project: Physics Mechanics • Reward: KSh 200</p>
-            </div>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              Pending Review
-            </span>
+        ) : (
+          <div className="space-y-3">
+            {stats.submissions.map((sub) => (
+              <div key={sub.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center">
+                <div>
+                  <h3 className="text-xs font-bold text-white">{sub.title}</h3>
+                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">Reward: KSh {sub.rewardAmount}</p>
+                </div>
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-xl border ${
+                  sub.status === 'APPROVED'
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                }`}>
+                  {sub.status}
+                </span>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
 
     </div>
