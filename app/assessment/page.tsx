@@ -58,14 +58,17 @@ export default function AssessmentPage() {
           <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center font-black text-2xl ${result.passed ? 'bg-emerald-500/10 border-2 border-emerald-500 text-emerald-400' : 'bg-amber-500/10 border-2 border-amber-500 text-amber-400'}`}>
             {result.score}%
           </div>
+
           <div className="space-y-2">
             <h1 className="text-2xl font-black text-white">{result.passed ? 'Assessment Passed!' : 'Under Review'}</h1>
             <p className="text-xs text-slate-400 leading-relaxed">{result.message}</p>
           </div>
+
           <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl flex justify-between text-xs">
             <span className="text-slate-400">New Worker Status:</span>
             <span className="font-mono font-bold text-emerald-400">{result.status}</span>
           </div>
+
           <button onClick={() => router.push('/dashboard')} className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm transition">
             Go to Worker Dashboard
           </button>
@@ -87,6 +90,7 @@ export default function AssessmentPage() {
             <span className="font-black uppercase tracking-widest text-emerald-400">Skill Evaluation</span>
             <span className="font-mono text-slate-400">Question {currentStep + 1} of {questions.length}</span>
           </div>
+
           <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
             <div className="bg-emerald-500 h-full transition-all duration-300" style={{ width: `${progressPercent}%` }}></div>
           </div>
@@ -95,6 +99,7 @@ export default function AssessmentPage() {
         {currentQuestion && (
           <div className="space-y-6">
             <h2 className="text-lg font-bold text-white leading-snug">{currentQuestion.question}</h2>
+
             <div className="space-y-3">
               {currentQuestion.options.map((option: string, idx: number) => {
                 const isSelected = answers[currentQuestion.id] === idx;
@@ -124,6 +129,7 @@ export default function AssessmentPage() {
           >
             Previous
           </button>
+
           {isLastQuestion ? (
             <button
               onClick={handleSubmit}
