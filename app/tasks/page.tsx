@@ -39,10 +39,8 @@ export default function TasksPage() {
         body: JSON.stringify({ taskId }),
       });
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.error || 'Failed to claim task');
-
-      setMessage('Task claimed successfully! It is now locked under your active queue.');
+      setMessage('Task claimed successfully!');
       loadTasks();
     } catch (err: any) {
       setMessage(`Error: ${err.message}`);
@@ -64,10 +62,9 @@ export default function TasksPage() {
         body: JSON.stringify({ taskId: selectedTask.id, submissionContent: submission }),
       });
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.error || 'Failed to submit work');
 
-      setMessage('Work submitted successfully! Pending Admin audit.');
+      setMessage('Work submitted successfully! Pending audit.');
       setSelectedTask(null);
       setSubmission('');
       loadTasks();
@@ -84,7 +81,6 @@ export default function TasksPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8 space-y-8">
-      {/* Top Banner */}
       <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Worker Workspace</span>
@@ -101,7 +97,6 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* Active Work Modal / Work Area */}
       {selectedTask && (
         <div className="bg-slate-900 border-2 border-emerald-500/40 p-6 rounded-3xl space-y-4">
           <div className="flex justify-between items-center">
@@ -114,7 +109,7 @@ export default function TasksPage() {
 
           <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl text-xs space-y-2">
             <span className="font-bold text-slate-400 uppercase">Instructions</span>
-            <p className="text-slate-300 leading-relaxed">{selectedTask.instructions || 'Perform quality annotation or prompt validation as per standard guidelines.'}</p>
+            <p className="text-slate-300 leading-relaxed">{selectedTask.instructions || 'Perform quality annotation or prompt validation.'}</p>
           </div>
 
           <form onSubmit={handleSubmitWork} className="space-y-4">
@@ -140,7 +135,6 @@ export default function TasksPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Available Tasks feed */}
         <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">Open Tasks Feed</h2>
@@ -170,7 +164,6 @@ export default function TasksPage() {
           )}
         </div>
 
-        {/* Claimed & Submitted Tasks Queue */}
         <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">My Claimed Queue</h2>
