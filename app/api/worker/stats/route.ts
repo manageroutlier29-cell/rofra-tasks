@@ -1,22 +1,44 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma'; // or your prisma client import path
+import { prisma } from '@/lib/prisma';
+import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
   try {
-    // Replace with your auth session user check (e.g., NextAuth / Supabase / Clerk)
-    // For demo/DB link, fetching default or authenticated worker record
-    const user = await prisma.user.findFirst({
+    // Read auth token or session ID from cookies/headers
+    const cookieStore = cookies();
+    const token = cookieStore.get('next-auth.session-token')?.value || cookieStore.get('sb-access-token')?.value;
+
+    // If no active session token is present, return empty onboarding status
+    if (!token) {
+      return NextResponse.json({
+        workerStatus: 'ONBOARDING',
+        activeTasksCount: 0,
+        lifetimeEarnings: 0,
+        qualityRating: 'N/A',
+        submissions: [],
+      });
+    }
+
+    // Query DB for the specific authenticated session
+    const session = await prisma.session.findUnique({
+      where: { sessionToken: token },
       include: {
-        submissions: true,
+        user: {
+          include: {
+            submissions: true,
+          },
+        },
       },
     });
+
+    const user = session?.user;
 
     if (!user) {
       return NextResponse.json({
         workerStatus: 'ONBOARDING',
         activeTasksCount: 0,
         lifetimeEarnings: 0,
-        qualityRating: '100%',
+        qualityRating: 'N/A',
         submissions: [],
       });
     }
@@ -26,7 +48,7 @@ export async function GET(request: Request) {
     const activeTasks = user.submissions.filter((s) => s.status === 'PENDING').length;
 
     return NextResponse.json({
-      workerStatus: user.role === 'APPROVED_WORKER' ? 'APPROVED' : user.status || 'PENDING_ASSESSMENT',
+      workerStatus: user.status || 'ONBOARDING',
       activeTasksCount: activeTasks,
       lifetimeEarnings: totalEarnings,
       qualityRating: '100%',
@@ -35,7 +57,7 @@ export async function GET(request: Request) {
   } catch (error) {
     return NextResponse.json(
       {
-        workerStatus: 'PENDING_ASSESSMENT',
+        workerStatus: 'ONBOARDING',
         activeTasksCount: 0,
         lifetimeEarnings: 0,
         qualityRating: 'N/A',
