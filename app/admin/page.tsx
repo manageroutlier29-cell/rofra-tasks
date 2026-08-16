@@ -3,15 +3,13 @@
 import { useState } from 'react';
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState<'assessments' | 'payouts' | 'projects'>('assessments');
+  const [activeTab, setActiveTab] = useState<'assessments' | 'payouts'>('assessments');
 
-  // Pending Assessments State
   const [assessments, setAssessments] = useState([
     { id: 'sub-1', email: 'worker1@example.com', score: 85, date: '2026-08-15', status: 'Pending Review' },
     { id: 'sub-2', email: 'evaluator@domain.com', score: 60, date: '2026-08-16', status: 'Pending Review' },
   ]);
 
-  // Pending Payouts State
   const [payouts, setPayouts] = useState([
     { id: 'tx-101', email: 'worker1@example.com', amount: 1200, method: 'M-Pesa (0712345678)', status: 'Pending' },
     { id: 'tx-102', email: 'john@domain.com', amount: 3500, method: 'Equity Bank (0123456789)', status: 'Pending' },
@@ -31,21 +29,16 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      
-      {/* Admin Header */}
       <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 flex justify-between items-center flex-wrap gap-4">
         <div>
           <span className="text-[10px] font-black uppercase text-amber-400 tracking-widest">System Administration</span>
           <h1 className="text-xl font-black text-white">Admin Control Portal</h1>
         </div>
-        <div className="flex gap-2">
-          <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            Admin Mode
-          </span>
-        </div>
+        <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          Admin Mode
+        </span>
       </div>
 
-      {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase">Pending Audits</span>
@@ -69,7 +62,6 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
       <div className="flex gap-2 border-b border-slate-800 pb-3">
         <button
           onClick={() => setActiveTab('assessments')}
@@ -93,13 +85,11 @@ export default function AdminDashboardPage() {
         </button>
       </div>
 
-      {/* Assessment Approvals Section */}
       {activeTab === 'assessments' && (
         <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
           <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">
             Worker Qualification Submissions
           </h2>
-
           <div className="space-y-3">
             {assessments.map((item) => (
               <div key={item.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center flex-wrap gap-4">
@@ -110,7 +100,6 @@ export default function AdminDashboardPage() {
                     <span>Date: {item.date}</span>
                   </div>
                 </div>
-
                 <div className="flex items-center gap-2">
                   {item.status === 'Pending Review' ? (
                     <>
@@ -141,13 +130,11 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* Payout Approvals Section */}
       {activeTab === 'payouts' && (
         <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
           <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">
             Pending Withdrawal Requests
           </h2>
-
           <div className="space-y-3">
             {payouts.map((pay) => (
               <div key={pay.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex justify-between items-center flex-wrap gap-4">
@@ -155,12 +142,10 @@ export default function AdminDashboardPage() {
                   <h3 className="text-xs font-bold text-white">{pay.email}</h3>
                   <p className="text-[10px] font-mono text-slate-400 mt-0.5">{pay.method}</p>
                 </div>
-
                 <div className="flex items-center gap-4">
                   <span className="text-sm font-black text-emerald-400 font-mono">
                     KSh {pay.amount.toLocaleString()}
                   </span>
-
                   {pay.status === 'Pending' ? (
                     <button
                       onClick={() => handleApprovePayout(pay.id)}
@@ -179,7 +164,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
