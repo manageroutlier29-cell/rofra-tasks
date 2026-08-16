@@ -14,7 +14,6 @@ async function main() {
       password: hashedPassword,
       role: 'ADMIN',
       status: 'APPROVED',
-      accountType: 'CLIENT',
     },
   });
   console.log('Default Admin Account Created/Updated:', admin.email);
