@@ -18,3 +18,12 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model AssessmentSubmission {
+  id          String   @id @default(cuid())
+  workerEmail String
+  score       Int
+  answers     Json
+  status      String   @default("pending_review")
+  submittedAt DateTime @default(now())
+}
