@@ -1,36 +1,52 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
+import { SignJWT } from 'jose';
 
-export async function POST(req: Request) {
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'rofra-secret-key-123456');
+
+export async function POST(request: Request) {
   try {
-    const { fullName, email, password, phoneNumber } = await req.json();
+    const { name, email, password, role } = await request.json();
 
-    if (!fullName || !email || !password || !phoneNumber) {
-      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
+    if (!name || !email || !password) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const existingUser = await prisma.user.findFirst({
-      where: { OR: [{ email }, { phoneNumber }] },
-    });
-
+    const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return NextResponse.json({ error: 'User or phone number already exists' }, { status: 400 });
+      return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const assignedRole = role === 'CLIENT' ? 'CLIENT' : 'WORKER';
 
     const user = await prisma.user.create({
       data: {
-        fullName,
+        name,
         email,
         password: hashedPassword,
-        phoneNumber,
+        role: assignedRole,
+        status: assignedRole === 'WORKER' ? 'PENDING_ASSESSMENT' : 'APPROVED',
       },
     });
 
-    return NextResponse.json({ message: 'User registered successfully!', userId: user.id });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const token = await new SignJWT({ id: user.id, email: user.email, role: user.role, name: user.name })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime('7d')
+      .sign(JWT_SECRET);
+
+    const response = NextResponse.json({ success: true, role: user.role }, { status: 201 });
+    response.cookies.set('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+
+    return response;
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to create account' }, { status: 500 });
   }
 }

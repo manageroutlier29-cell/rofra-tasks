@@ -1,200 +1,69 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const savedEmail = localStorage.getItem('saved_email');
-    const savedPassword = localStorage.getItem('saved_password');
-    if (savedEmail) setEmail(savedEmail);
-    if (savedPassword) setPassword(savedPassword);
-  }, []);
-
-  const validatePhone = (num: string) => {
-    let clean = num.trim().replace(/\s+/g, '').replace('+', '');
-    if (clean.startsWith('0')) clean = '254' + clean.slice(1);
-    const kenyaPhoneRegex = /^254(7|1)\d{8}$/;
-    return kenyaPhoneRegex.test(clean) ? clean : null;
-  };
-
-  const validateEmail = (mail: string) => {
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    const lower = mail.trim().toLowerCase();
-    const bannedDomains = ['mailinator.com', 'tempmail.com', '10minutemail.com', 'guerrillamail.com', 'yopmail.com'];
-    const domain = lower.split('@')[1];
-
-    if (!emailRegex.test(lower)) return false;
-    if (bannedDomains.includes(domain)) return false;
-    return lower;
-  };
-
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
 
-    const validEmail = validateEmail(email);
-    if (!validEmail) {
-      alert('Please enter a valid email address.');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to authenticate');
+
+      router.push(data.redirectUrl || '/dashboard');
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const isAdminEmail = validEmail === 'robertwaweru324@gmail.com';
-
-    if (isSignUp) {
-      const validPhone = validatePhone(phone);
-      if (!validPhone) {
-        alert('Please enter a valid Kenyan phone number (e.g. 0712345678).');
-        setLoading(false);
-        return;
-      }
-
-      const { data: existingUser } = await supabase.from('workers').select('email').eq('email', validEmail).single();
-      if (existingUser) {
-        alert('Account already exists. Please log in.');
-        setIsSignUp(false);
-        setLoading(false);
-        return;
-      }
-
-      const { error: authError } = await supabase.auth.signUp({ email: validEmail, password });
-      if (authError) {
-        alert(authError.message);
-        setLoading(false);
-        return;
-      }
-
-      await supabase.from('workers').insert([
-        { email: validEmail, phone: validPhone, balance: 0, is_pro: isAdminEmail, role: isAdminEmail ? 'admin' : 'worker' }
-      ]);
-
-      if (rememberMe) {
-        localStorage.setItem('saved_email', validEmail);
-        localStorage.setItem('saved_password', password);
-      }
-
-      localStorage.setItem('userEmail', validEmail);
-      alert('Account created successfully!');
-      router.push('/dashboard');
-
-    } else {
-      // Enforce DB record check to block unregistered sign-ins
-      const { data: dbWorker } = await supabase.from('workers').select('*').eq('email', validEmail).single();
-
-      if (!dbWorker && !isAdminEmail) {
-        alert('No account found with this email. Please sign up first.');
-        setIsSignUp(true);
-        setLoading(false);
-        return;
-      }
-
-      const { error } = await supabase.auth.signInWithPassword({ email: validEmail, password });
-      
-      if (error && !isAdminEmail) {
-        alert('Incorrect email or password.');
-      } else {
-        if (rememberMe) {
-          localStorage.setItem('saved_email', validEmail);
-          localStorage.setItem('saved_password', password);
-        }
-        localStorage.setItem('userEmail', validEmail);
-        router.push('/dashboard');
-      }
-    }
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white font-sans p-4 flex items-center justify-center">
-      <div className="max-w-md w-full bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-xl space-y-6">
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center mx-auto text-xl font-black">
-            RT
-          </div>
-          <h1 className="text-xl font-black">{isSignUp ? 'Create Account' : 'Welcome Back'}</h1>
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 p-8 rounded-3xl w-full max-w-md space-y-6">
+        <div className="text-center space-y-1">
+          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Welcome Back</span>
+          <h1 className="text-2xl font-black text-white">Sign In to ROFRA</h1>
         </div>
 
-        <form onSubmit={handleAuth} className="space-y-3">
-          <div>
-            <label className="text-xs font-bold text-slate-300 block mb-1">Email Address</label>
-            <input 
-              type="email" 
-              placeholder="worker@gmail.com" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-emerald-500"
-              required
-            />
-          </div>
+        {error && <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-xs font-bold text-center">{error}</div>}
 
-          {isSignUp && (
-            <div>
-              <label className="text-xs font-bold text-slate-300 block mb-1">M-Pesa Phone Number</label>
-              <input 
-                type="tel" 
-                placeholder="0712345678" 
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-emerald-500"
-                required
-              />
-            </div>
-          )}
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-slate-400 uppercase">Email Address</label>
+            <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="name@example.com" className="w-full mt-1.5 px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500" required />
+          </div>
 
           <div>
-            <label className="text-xs font-bold text-slate-300 block mb-1">Password</label>
-            <input 
-              type="password" 
-              placeholder="••••••••" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-emerald-500"
-              required
-            />
+            <label className="text-xs font-bold text-slate-400 uppercase">Password</label>
+            <input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="••••••••••••" className="w-full mt-1.5 px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500" required />
           </div>
-
-          <div className="flex items-center justify-between pt-1">
-            <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-400">
-              <input 
-                type="checkbox" 
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="rounded bg-slate-900 border-slate-700 text-emerald-600"
-              />
-              Save login credentials
-            </label>
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-emerald-600 hover:bg-emerald-500 font-bold text-xs py-3 rounded-xl transition shadow mt-2"
-          >
-            {loading ? 'Authenticating...' : isSignUp ? 'Sign Up' : 'Log In'}
-          </button>
-        </form>
-
-        <div className="text-center">
-          <button 
-            onClick={() => setIsSignUp(!isSignUp)} 
-            className="text-xs font-semibold text-emerald-400 hover:underline"
-          >
-            {isSignUp ? 'Already have an account? Log In' : "Don't have an account? Sign Up"}
-          </button>
         </div>
-      </div>
+
+        <button type="submit" disabled={loading} className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm transition disabled:opacity-50">
+          {loading ? 'Authenticating...' : 'Sign In'}
+        </button>
+
+        <p className="text-center text-xs text-slate-400">
+          Don't have an account? <Link href="/register" className="text-emerald-400 font-bold hover:underline">Register</Link>
+        </p>
+      </form>
     </div>
   );
 }
