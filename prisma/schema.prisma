@@ -7,23 +7,72 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id          String   @id @default(cuid())
-  fullName    String
-  email       String   @unique
-  password    String
-  phoneNumber String   @unique
-  isPremium   Boolean  @default(false)
-  balance     Float    @default(0.0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+enum Role {
+  WORKER
+  CLIENT
+  ADMIN
 }
 
-model AssessmentSubmission {
-  id          String   @id @default(cuid())
-  workerEmail String
-  score       Int
-  answers     Json
-  status      String   @default("pending_review")
-  submittedAt DateTime @default(now())
+enum Status {
+  PENDING_ASSESSMENT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+enum TaskStatus {
+  AVAILABLE
+  CLAIMED
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(WORKER)
+  status    Status   @default(PENDING_ASSESSMENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tasks     Task[]   @relation("AssignedWorker")
+}
+
+model Project {
+  id         String   @id @default(cuid())
+  title      String
+  client     String   @default("Internal Project")
+  budget     String
+  tasksCount Int      @default(0)
+  status     String   @default("Active")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  tasks      Task[]
+}
+
+model Task {
+  id                String     @id @default(cuid())
+  title             String
+  reward            String
+  status            TaskStatus @default(AVAILABLE)
+  instructions      String?    @default("Follow quality guidelines to complete labeling/annotation for this dataset.")
+  submissionContent String?
+  projectId         String?
+  project           Project?   @relation(fields: [projectId], references: [id])
+  assignedToId      String?
+  assignedTo        User?      @relation("AssignedWorker", fields: [assignedToId], references: [id])
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
+model Assessment {
+  id             String   @id @default(cuid())
+  title          String
+  category       String
+  passingScore   Int      @default(80)
+  totalQuestions Int      @default(10)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
