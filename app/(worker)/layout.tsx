@@ -31,11 +31,8 @@ export default function WorkerLayout({
       <aside className="w-20 lg:w-64 bg-white border-r border-slate-200 flex flex-col justify-between sticky top-0 h-screen z-30 transition-all">
         <div className="p-4 lg:p-6 space-y-8">
           {/* Logo / Brand Header */}
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white font-extrabold flex items-center justify-center text-xl shadow-md shadow-indigo-200">
-              M
-            </div>
-            <span className="hidden lg:block text-lg font-bold tracking-tight text-slate-900">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <span className="text-2xl font-black tracking-tight text-indigo-600 font-sans">
               ROFRA
             </span>
           </Link>
@@ -61,8 +58,8 @@ export default function WorkerLayout({
         {/* Footer / Account Profile Avatar */}
         <div className="p-4 lg:p-6 border-t border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-slate-800 text-white font-semibold flex items-center justify-center text-sm shadow-sm">
-              R
+            <div className="w-9 h-9 rounded-full bg-slate-900 text-white font-semibold flex items-center justify-center text-sm shadow-sm">
+              W
             </div>
             <div className="hidden lg:block">
               <p className="text-xs font-semibold text-slate-800">Worker Account</p>
